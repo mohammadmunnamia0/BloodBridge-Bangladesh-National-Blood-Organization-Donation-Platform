@@ -1,5 +1,4 @@
-# 🩸 Blood Bridge Foundation - A Life-Saving Blood Donation Platform
-
+# 🩸 BloodBridge Bangladesh National Blood Organization Donation Platform
 
 > **Mission:** A secure and scalable web platform built to support blood donation, help people in emergencies, and build a strong ecosystem around life-saving support.
 
