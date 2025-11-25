@@ -1,8 +1,17 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const WhyDonate = () => {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  useEffect(() => {
+    // Check if user is logged in
+    const loggedIn = localStorage.getItem("isLoggedIn") === "true";
+    const user = localStorage.getItem("user");
+    setIsLoggedIn(loggedIn && user);
+  }, []);
 
   const reasons = [
     {
@@ -76,12 +85,18 @@ const WhyDonate = () => {
           viewport={{ once: true }}
           className="mt-16 text-center"
         >
-          <div
-            onClick={() => navigate("/register-donor")}
-            className="inline-block bg-red-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors cursor-pointer"
-          >
-            Become a Donor Today
-          </div>
+          {isLoggedIn ? (
+            <div className="inline-block bg-green-600 text-white px-8 py-3 rounded-full font-semibold shadow-lg">
+              Thanks for being a Valuable member to save someone's life ❤️
+            </div>
+          ) : (
+            <div
+              onClick={() => navigate("/register-donor")}
+              className="inline-block bg-red-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors cursor-pointer"
+            >
+              Become a Donor Today
+            </div>
+          )}
         </motion.div>
       </div>
     </section>
