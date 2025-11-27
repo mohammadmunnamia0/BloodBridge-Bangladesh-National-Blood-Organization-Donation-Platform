@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Static credentials
-const STATIC_EMAIL = "donor@bloodbridge.com";
-const STATIC_PASSWORD = "BloodBridge@123";
+import axios from "../utils/axios";
 
 const RegisterDonor = () => {
   const [showSuccessModal, setShowSuccessModal] = useState(false);
@@ -19,7 +16,7 @@ const RegisterDonor = () => {
     const formData = new FormData(e.target);
     const data = {
       fullName: formData.get("fullName"),
-      email: STATIC_EMAIL, // Using static email
+      email: formData.get("email"),
       phone: formData.get("phone"),
       dateOfBirth: formData.get("dateOfBirth"),
       gender: formData.get("gender"),
@@ -31,7 +28,7 @@ const RegisterDonor = () => {
       weight: Number(formData.get("weight")),
       lastDonation: formData.get("lastDonation") || null,
       medicalConditions: formData.get("medicalConditions"),
-      password: STATIC_PASSWORD, // Using static password
+      password: formData.get("password"),
     };
 
     // Validate weight
@@ -41,29 +38,16 @@ const RegisterDonor = () => {
       return;
     }
 
+    // Validate password
+    if (!data.password || data.password.length < 6) {
+      setError("Password must be at least 6 characters long");
+      setLoading(false);
+      return;
+    }
+
     try {
-      // Store donor data in localStorage
-      const donors = JSON.parse(localStorage.getItem("donors") || "[]");
-
-      // Check if donor already exists
-      const existingDonor = donors.find(
-        (donor) => donor.email === STATIC_EMAIL
-      );
-      if (existingDonor) {
-        setError(
-          "A donor with these credentials already exists. Please login instead."
-        );
-        setLoading(false);
-        return;
-      }
-
-      // Add new donor
-      donors.push(data);
-      localStorage.setItem("donors", JSON.stringify(donors));
-
-      // Store authentication data
-      localStorage.setItem("isRegistered", "true");
-      localStorage.setItem("user", JSON.stringify(data));
+      // Call backend registration API
+      await axios.post("/api/auth/register", data);
 
       setShowSuccessModal(true);
       setTimeout(() => {
@@ -71,7 +55,11 @@ const RegisterDonor = () => {
       }, 2000);
     } catch (error) {
       console.error("Registration error:", error);
-      setError("Registration failed. Please try again.");
+      if (error.response?.status === 400 && error.response?.data?.message?.includes("already exists")) {
+        setError("A user with this email already exists. Please login instead.");
+      } else {
+        setError(error.response?.data?.message || "Registration failed. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -91,19 +79,10 @@ const RegisterDonor = () => {
             </p>
 
             {/* Static Credentials Display */}
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg text-center">
-              <h3 className="text-lg font-semibold text-green-800 mb-2">
-                 Credentials (Required for Registration  Login)
-              </h3>
-              <div className="space-y-2">
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Email:</span> {STATIC_EMAIL}
-                </p>
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Password:</span>{" "}
-                  {STATIC_PASSWORD}
-                </p>
-              </div>
+            <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-lg text-center">
+              <p className="text-sm text-green-700">
+                After registration, you'll be redirected to the login page to access your account.
+              </p>
             </div>
           </div>
 
@@ -172,6 +151,21 @@ const RegisterDonor = () => {
                   </div>
                   <div>
                     <label
+                      htmlFor="email"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Email Address *
+                    </label>
+                    <input
+                      id="email"
+                      name="email"
+                      type="email"
+                      required
+                      className="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out"
+                    />
+                  </div>
+                  <div>
+                    <label
                       htmlFor="phone"
                       className="block text-sm font-medium text-gray-700"
                     >
@@ -182,6 +176,23 @@ const RegisterDonor = () => {
                       name="phone"
                       type="tel"
                       required
+                      className="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out"
+                    />
+                  </div>
+                  <div>
+                    <label
+                      htmlFor="password"
+                      className="block text-sm font-medium text-gray-700"
+                    >
+                      Password *
+                    </label>
+                    <input
+                      id="password"
+                      name="password"
+                      type="password"
+                      required
+                      minLength={6}
+                      placeholder="At least 6 characters"
                       className="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out"
                     />
                   </div>

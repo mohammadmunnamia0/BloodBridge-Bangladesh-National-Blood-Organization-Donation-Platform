@@ -5,7 +5,9 @@ import express from "express";
 import mongoose from "mongoose";
 import authRoutes from "./routes/auth.js";
 import bloodRequestRoutes from "./routes/bloodRequests.js";
+import bloodPurchaseRoutes from "./routes/bloodPurchases.js";
 import donorRoutes from "./routes/donors.js";
+import adminRoutes from "./routes/admin.js";
 
 dotenv.config();
 
@@ -130,6 +132,8 @@ connectDB()
     app.use("/api/auth", authRoutes);
     app.use("/api/donors", donorRoutes);
     app.use("/api/blood-requests", bloodRequestRoutes);
+    app.use("/api/blood-purchases", bloodPurchaseRoutes);
+    app.use("/api/admin", adminRoutes);
 
     // Basic route for testing
     app.get("/", (req, res) => {

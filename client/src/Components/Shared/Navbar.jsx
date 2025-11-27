@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const location = useLocation();
 
   useEffect(() => {
     // Get user from localStorage
@@ -48,67 +49,147 @@ const Navbar = () => {
               to="/"
               className="text-2xl md:text-3xl font-bold bg-gradient-to-r from-red-500 to-red-600 bg-clip-text text-transparent hover:from-red-400 hover:to-red-500 transition-all duration-300"
             >
-              BloodBridge Foundation
+              BloodBridge
             </Link>
           </div>
 
           {/* Center - Navigation Links (Desktop) */}
-          <div className="hidden xl:flex space-x-8">
+          <div className="hidden xl:flex space-x-6">
             <Link
               to="/"
-              className="text-gray-600 hover:text-red-500 transition-colors duration-300 relative group"
+              className={`text-sm transition-colors duration-300 relative group ${
+                location.pathname === "/" 
+                  ? "text-red-500 font-semibold" 
+                  : "text-gray-600 hover:text-red-500"
+              }`}
             >
               Home
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300"></span>
+              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                location.pathname === "/" ? "w-full" : "w-0 group-hover:w-full"
+              }`}></span>
             </Link>
             <Link
               to="/hospitals"
-              className="text-gray-600 hover:text-red-500 transition-colors duration-300 relative group"
+              className={`text-sm transition-colors duration-300 relative group ${
+                location.pathname === "/hospitals" 
+                  ? "text-red-500 font-semibold" 
+                  : "text-gray-600 hover:text-red-500"
+              }`}
             >
               Hospitals
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300"></span>
+              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                location.pathname === "/hospitals" ? "w-full" : "w-0 group-hover:w-full"
+              }`}></span>
             </Link>
             <Link
               to="/organizations"
-              className="text-gray-600 hover:text-red-500 transition-colors duration-300 relative group"
+              className={`text-sm transition-colors duration-300 relative group ${
+                location.pathname === "/organizations" 
+                  ? "text-red-500 font-semibold" 
+                  : "text-gray-600 hover:text-red-500"
+              }`}
             >
               Organizations
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300"></span>
+              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                location.pathname === "/organizations" ? "w-full" : "w-0 group-hover:w-full"
+              }`}></span>
             </Link>
             <Link
               to="/blood-requests"
-              className="text-gray-600 hover:text-red-500 transition-colors duration-300 relative group"
+              className={`text-sm transition-colors duration-300 relative group ${
+                location.pathname === "/blood-requests" 
+                  ? "text-red-500 font-semibold" 
+                  : "text-gray-600 hover:text-red-500"
+              }`}
             >
               Blood Requests
-              <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300"></span>
+              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                location.pathname === "/blood-requests" ? "w-full" : "w-0 group-hover:w-full"
+              }`}></span>
             </Link>
+            <Link
+              to="/buy-blood"
+              className={`text-sm transition-colors duration-300 relative group ${
+                location.pathname === "/buy-blood" 
+                  ? "text-red-500 font-semibold" 
+                  : "text-gray-600 hover:text-red-500"
+              }`}
+            >
+              Buy Blood
+              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                location.pathname === "/buy-blood" ? "w-full" : "w-0 group-hover:w-full"
+              }`}></span>
+            </Link>
+            <Link
+              to="/price-comparison"
+              className={`text-sm transition-colors duration-300 relative group ${
+                location.pathname === "/price-comparison" 
+                  ? "text-red-500 font-semibold" 
+                  : "text-gray-600 hover:text-red-500"
+              }`}
+            >
+              Price Compare
+              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                location.pathname === "/price-comparison" ? "w-full" : "w-0 group-hover:w-full"
+              }`}></span>
+            </Link>
+            {user && (
+              <Link
+                to="/profile"
+                className={`text-sm transition-colors duration-300 relative group ${
+                  location.pathname === "/profile" 
+                    ? "text-red-500 font-semibold" 
+                    : "text-gray-600 hover:text-red-500"
+                }`}
+              >
+                My Profile
+                <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                  location.pathname === "/profile" ? "w-full" : "w-0 group-hover:w-full"
+                }`}></span>
+              </Link>
+            )}
+            {user && user.role === "admin" && (
+              <Link
+                to="/admin"
+                className={`text-sm transition-colors duration-300 relative group ${
+                  location.pathname.startsWith("/admin") 
+                    ? "text-purple-700 font-semibold" 
+                    : "text-purple-600 hover:text-purple-700"
+                }`}
+              >
+                Admin
+                <span className={`absolute bottom-0 left-0 h-0.5 bg-purple-600 transition-all duration-300 ${
+                  location.pathname.startsWith("/admin") ? "w-full" : "w-0 group-hover:w-full"
+                }`}></span>
+              </Link>
+            )}
           </div>
 
           {/* Right Side - Auth Buttons/User Menu (Desktop) */}
-          <div className="hidden xl:flex items-center space-x-4">
+          <div className="hidden xl:flex items-center space-x-3">
             {user ? (
-              <div className="flex items-center space-x-6">
-                <div className="flex items-center space-x-3">
-                  <span className="text-gray-600">Welcome,</span>
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg hover:shadow-red-500/30 transform hover:scale-105 transition-all duration-300">
-                    <span className="text-white font-medium">
+              <div className="flex items-center space-x-4">
+                <div className="flex items-center space-x-2">
+                  <span className="text-sm text-gray-600">Welcome,</span>
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg hover:shadow-red-500/30 transform hover:scale-105 transition-all duration-300">
+                    <span className="text-white text-sm font-medium">
                       {user.fullName?.charAt(0) || user.email?.charAt(0)}
                     </span>
                   </div>
                 </div>
                 <Link
                   to="/request-blood"
-                  className="bg-gradient-to-r from-red-600 to-red-700 text-white px-6 py-2.5 rounded-full hover:from-red-500 hover:to-red-600 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-red-500/30"
+                  className="bg-gradient-to-r from-red-600 to-red-700 text-white text-sm px-4 py-2 rounded-full hover:from-red-500 hover:to-red-600 transform hover:scale-105 transition-all duration-300 shadow-lg hover:shadow-red-500/30"
                 >
                   Request Blood
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="relative inline-flex items-center justify-center px-6 py-2.5 overflow-hidden font-medium text-red-600 transition duration-300 ease-out border-2 border-red-500 rounded-full shadow-md group"
+                  className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden text-sm font-medium text-red-600 transition duration-300 ease-out border-2 border-red-500 rounded-full shadow-md group"
                 >
                   <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-red-500 group-hover:translate-x-0 ease">
                     <svg
-                      className="w-6 h-6"
+                      className="w-5 h-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -129,21 +210,21 @@ const Navbar = () => {
                 </button>
               </div>
             ) : (
-              <div className="flex items-center space-x-6">
+              <div className="flex items-center space-x-4">
                 <Link
                   to="/register-donor"
-                  className="text-gray-600 hover:text-red-500 transition-colors duration-300 relative group"
+                  className="text-sm text-gray-600 hover:text-red-500 transition-colors duration-300 relative group"
                 >
-                  Register as Donor
+                  Register
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-red-500 group-hover:w-full transition-all duration-300"></span>
                 </Link>
                 <Link
                   to="/login"
-                  className="relative inline-flex items-center justify-center px-6 py-2.5 overflow-hidden font-medium text-white transition duration-300 ease-out rounded-full shadow-md group bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
+                  className="relative inline-flex items-center justify-center px-4 py-2 overflow-hidden text-sm font-medium text-white transition duration-300 ease-out rounded-full shadow-md group bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700"
                 >
                   <span className="absolute inset-0 flex items-center justify-center w-full h-full text-white duration-300 -translate-x-full bg-red-600 group-hover:translate-x-0 ease">
                     <svg
-                      className="w-6 h-6"
+                      className="w-5 h-5"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -217,32 +298,83 @@ const Navbar = () => {
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
             <Link
               to="/"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                location.pathname === "/" 
+                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Home
             </Link>
             <Link
               to="/hospitals"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                location.pathname === "/hospitals" 
+                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Hospitals
             </Link>
             <Link
               to="/organizations"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                location.pathname === "/organizations" 
+                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Organizations
             </Link>
             <Link
               to="/blood-requests"
-              className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                location.pathname === "/blood-requests" 
+                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Blood Requests
             </Link>
+            <Link
+              to="/buy-blood"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                location.pathname === "/buy-blood" 
+                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Buy Blood
+            </Link>
+            <Link
+              to="/price-comparison"
+              className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                location.pathname === "/price-comparison" 
+                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
+              onClick={() => setIsMobileMenuOpen(false)}
+            >
+              Price Comparison
+            </Link>
+            {user && (
+              <Link
+                to="/profile"
+                className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                  location.pathname === "/profile" 
+                    ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                    : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+                }`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                My Profile
+              </Link>
+            )}
             {user ? (
               <>
                 <div className="px-3 py-2">

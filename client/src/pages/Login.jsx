@@ -1,9 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-// Static credentials
-const STATIC_EMAIL = "donor@bloodbridge.com";
-const STATIC_PASSWORD = "BloodBridge@123";
+import axios from "../utils/axios";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -18,40 +15,26 @@ const Login = () => {
     setLoading(true);
 
     try {
-      // Check if credentials match static values
-      if (email !== STATIC_EMAIL || password !== STATIC_PASSWORD) {
-        setError("Invalid email or password");
-        setLoading(false);
-        return;
-      }
-
-      // Check if user is registered
-      const isRegistered = localStorage.getItem("isRegistered");
-      if (!isRegistered) {
-        setError("Please register as a donor first before logging in");
-        setLoading(false);
-        return;
-      }
-
-      // Get donor data from localStorage
-      const donors = JSON.parse(localStorage.getItem("donors") || "[]");
-      const donor = donors.find((d) => d.email === STATIC_EMAIL);
-
-      if (!donor) {
-        setError("Please register as a donor first before logging in");
-        setLoading(false);
-        return;
-      }
+      // Call backend login API
+      const response = await axios.post("/api/auth/login", {
+        email,
+        password,
+      });
 
       // Store authentication data
+      localStorage.setItem("token", response.data.token);
       localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("user", JSON.stringify(donor));
+      localStorage.setItem("user", JSON.stringify(response.data.user));
 
       // Redirect to home page
       window.location.href = "/";
     } catch (error) {
       console.error("Login error:", error);
-      setError("An error occurred during login. Please try again.");
+      if (error.response?.status === 400) {
+        setError("Invalid email or password. Please register first if you don't have an account.");
+      } else {
+        setError(error.response?.data?.message || "An error occurred during login. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
@@ -85,27 +68,11 @@ const Login = () => {
             <h2 className="text-4xl font-extrabold text-gray-900 mb-2">
               Welcome Back
             </h2>
-            <p className="text-sm text-gray-600">
-              <p className="text-lg text-green-600">
-                Before login you must have to register as a donor.
-              </p>{" "}
-              Sign in to continue your journey of saving lives
-            </p>
-
-            {/* Static Credentials Display */}
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h3 className="text-lg font-semibold text-green-800 mb-2">
-                Static Credentials For Login
-              </h3>
-              <div className="space-y-2">
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Email:</span> {STATIC_EMAIL}
-                </p>
-                <p className="text-sm text-blue-700">
-                  <span className="font-medium">Password:</span>{" "}
-                  {STATIC_PASSWORD}
-                </p>
-              </div>
+            <div className="text-sm text-gray-600 space-y-2">
+              <p className="text-lg text-green-600 font-semibold">
+                Please register as a donor first before logging in
+              </p>
+              <p>Sign in to continue your journey of saving lives</p>
             </div>
           </div>
 

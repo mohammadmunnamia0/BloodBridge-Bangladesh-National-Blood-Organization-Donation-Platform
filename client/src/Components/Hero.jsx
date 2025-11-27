@@ -2,7 +2,9 @@ import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
-import image from "/Hero/hero1.jpg";
+// import image from "/Hero/hero1.jpg";
+import image from "/Hero/Banner.png";
+
 
 const Hero = () => {
   const navigate = useNavigate();
