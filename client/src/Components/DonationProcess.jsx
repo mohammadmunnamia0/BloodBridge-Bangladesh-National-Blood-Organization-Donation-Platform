@@ -1,8 +1,21 @@
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
 
 const DonationProcess = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    const storedUser = localStorage.getItem("user");
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+      }
+    }
+  }, []);
 
   const steps = [
     {
@@ -102,20 +115,57 @@ const DonationProcess = () => {
           className="mt-16 text-center"
         >
           <div className="bg-white rounded-xl p-8 shadow-lg max-w-2xl mx-auto">
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">
-              Ready to Donate?
-            </h3>
-            <p className="text-gray-600 mb-6">
-              The entire process takes about an hour, including registration,
-              screening, donation, and recovery. Your donation can save up to
-              three lives!
-            </p>
-            <button
-              onClick={() => navigate("/register-donor")}
-              className="bg-red-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors"
-            >
-              Register As A Donor
-            </button>
+            {user ? (
+              <>
+                <h3 className="text-2xl font-bold bg-gradient-to-r from-red-600 to-red-700 bg-clip-text text-transparent mb-4">
+                  Be The Hero Someone Needs Today
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  Every donation creates a ripple of hope. Share this platform with your friends and family, 
+                  and together we can build a community of life-savers. Your influence can inspire others 
+                  to join this noble cause and save countless lives.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <button
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: 'BloodBridge - Save Lives Together',
+                          text: 'Join me in saving lives! Become a blood donor and be someone\'s hero.',
+                          url: window.location.origin
+                        });
+                      }
+                    }}
+                    className="bg-gradient-to-r from-red-600 to-red-700 text-white px-8 py-3 rounded-full font-semibold hover:from-red-500 hover:to-red-600 transition-all transform hover:scale-105 shadow-lg hover:shadow-red-500/30"
+                  >
+                    🌟 Share & Inspire Others
+                  </button>
+                  <button
+                    onClick={() => navigate("/blood-requests")}
+                    className="border-2 border-red-600 text-red-600 px-8 py-3 rounded-full font-semibold hover:bg-red-50 transition-all"
+                  >
+                    💝 Help Someone in Need
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  Ready to Donate?
+                </h3>
+                <p className="text-gray-600 mb-6">
+                  The entire process takes about an hour, including registration,
+                  screening, donation, and recovery. Your donation can save up to
+                  three lives!
+                </p>
+                <button
+                  onClick={() => navigate("/register-donor")}
+                  className="bg-red-600 text-white px-8 py-3 rounded-full font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Register As A Donor
+                </button>
+              </>
+            )}
           </div>
         </motion.div>
       </div>

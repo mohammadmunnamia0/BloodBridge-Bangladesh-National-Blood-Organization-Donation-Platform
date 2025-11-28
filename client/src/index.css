@@ -1,1 +1,55 @@
 @import "tailwindcss";
+
+/* Global cursor pointer for interactive elements */
+button,
+a,
+[role="button"],
+[type="button"],
+[type="submit"],
+[type="reset"],
+select,
+.cursor-pointer {
+  cursor: pointer;
+}
+
+button:disabled,
+button[disabled] {
+  cursor: not-allowed;
+}
+
+/* Bounce animation for Blood Requests link */
+@keyframes gentle-bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.bounce-animation {
+  animation: gentle-bounce 2s ease-in-out infinite;
+}
+
+.bounce-animation:hover,
+.bounce-animation:focus,
+.bounce-animation.active {
+  animation: none;
+}
+
+/* Wave bold animation for each letter */
+@keyframes wave-bold {
+  0%, 100% {
+    font-weight: 400;
+    transform: translateY(0) scale(1);
+  }
+  50% {
+    font-weight: 700;
+    transform: translateY(-3px) scale(1.1);
+  }
+}
+
+.animate-wave-bold {
+  animation: wave-bold 2s ease-in-out infinite;
+  display: inline-block;
+}

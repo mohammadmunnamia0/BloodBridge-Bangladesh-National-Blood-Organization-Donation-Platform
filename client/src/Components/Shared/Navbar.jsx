@@ -99,10 +99,22 @@ const Navbar = () => {
               className={`text-sm transition-colors duration-300 relative group ${
                 location.pathname === "/blood-requests" 
                   ? "text-red-500 font-semibold" 
-                  : "text-gray-600 hover:text-red-500"
+                  : "text-red-500 hover:text-red-600"
               }`}
             >
-              Blood Requests
+              <span className="inline-flex">
+                {"Blood Requests".split("").map((char, index) => (
+                  <span
+                    key={index}
+                    className="inline-block animate-wave-bold"
+                    style={{
+                      animationDelay: `${index * 0.1}s`
+                    }}
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
+              </span>
               <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
                 location.pathname === "/blood-requests" ? "w-full" : "w-0 group-hover:w-full"
               }`}></span>
@@ -148,7 +160,7 @@ const Navbar = () => {
                 }`}></span>
               </Link>
             )}
-            {user && user.role === "admin" && (
+            {localStorage.getItem("isAdminLoggedIn") === "true" && (
               <Link
                 to="/admin"
                 className={`text-sm transition-colors duration-300 relative group ${
@@ -334,11 +346,23 @@ const Navbar = () => {
               className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 location.pathname === "/blood-requests" 
                   ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
-                  : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+                  : "text-red-500 hover:text-red-600 hover:bg-gray-50"
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              Blood Requests
+              <span className="inline-flex flex-wrap">
+                {"Blood Requests".split("").map((char, index) => (
+                  <span
+                    key={index}
+                    className="inline-block animate-wave-bold"
+                    style={{
+                      animationDelay: `${index * 0.1}s`
+                    }}
+                  >
+                    {char === " " ? "\u00A0" : char}
+                  </span>
+                ))}
+              </span>
             </Link>
             <Link
               to="/buy-blood"

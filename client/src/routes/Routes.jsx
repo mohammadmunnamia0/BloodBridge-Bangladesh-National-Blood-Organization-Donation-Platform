@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 import Root from "../layouts/Root";
+import AdminLayout from "../layouts/AdminLayout";
 import BloodPurchaseDashboard from "../pages/BloodPurchaseDashboard";
 import BloodRequestDashboard from "../pages/BloodRequestDashboard";
 import BuyBlood from "../pages/BuyBlood";
@@ -11,6 +12,9 @@ import PriceComparison from "../pages/PriceComparison";
 import RegisterDonor from "../pages/RegisterDonor";
 import RequestBlood from "../pages/RequestBlood";
 import Profile from "../pages/Profile";
+import AdminLogin from "../pages/AdminLogin";
+import UnifiedAdminDashboard from "../pages/UnifiedAdminDashboard";
+import AdminDashboardMain from "../pages/AdminDashboardMain";
 import AdminDashboard from "../pages/AdminDashboard";
 import AdminPurchases from "../pages/AdminPurchases";
 import AdminAnalytics from "../pages/AdminAnalytics";
@@ -18,6 +22,8 @@ import AdminInventory from "../pages/AdminInventory";
 import AdminPricing from "../pages/AdminPricing";
 import PurchaseBlood from "../pages/PurchaseBlood";
 import PurchaseSuccess from "../pages/PurchaseSuccess";
+import RegisterOrganization from "../pages/RegisterOrganization";
+import RegisterHospital from "../pages/RegisterHospital";
 
 const router = createBrowserRouter([
   {
@@ -76,8 +82,34 @@ const router = createBrowserRouter([
         path: "/profile",
         element: <Profile />,
       },
+    ],
+  },
+  {
+    path: "/register-organization",
+    element: <RegisterOrganization />,
+  },
+  {
+    path: "/register-hospital",
+    element: <RegisterHospital />,
+  },
+  {
+    path: "/admin",
+    element: <AdminLayout />,
+    children: [
       {
         path: "/admin",
+        element: <AdminLogin />,
+      },
+      {
+        path: "/admin/dashboard",
+        element: <UnifiedAdminDashboard />,
+      },
+      {
+        path: "/admin/old-main",
+        element: <AdminDashboardMain />,
+      },
+      {
+        path: "/admin/old-dashboard",
         element: <AdminDashboard />,
       },
       {
