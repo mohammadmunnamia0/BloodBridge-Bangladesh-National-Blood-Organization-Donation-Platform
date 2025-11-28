@@ -7,7 +7,7 @@ import authRoutes from "./routes/auth.js";
 import bloodRequestRoutes from "./routes/bloodRequests.js";
 import bloodPurchaseRoutes from "./routes/bloodPurchases.js";
 import donorRoutes from "./routes/donors.js";
-import adminRoutes from "./routes/admin.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 

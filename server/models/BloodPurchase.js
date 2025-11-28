@@ -123,8 +123,24 @@ const bloodPurchaseSchema = new mongoose.Schema(
     // Status tracking
     status: {
       type: String,
-      enum: ["pending", "verified", "confirmed", "ready", "completed", "cancelled"],
+      enum: ["pending", "approved", "rejected", "processing", "shipped", "delivered", "cancelled"],
       default: "pending",
+    },
+    
+    // Shipping details
+    shippingStatus: {
+      type: String,
+      enum: ["not_started", "processing", "shipped", "delivered", "cancelled"],
+      default: "not_started",
+    },
+    
+    shippingDetails: {
+      courierName: String,
+      trackingNumber: String,
+      shippedDate: Date,
+      estimatedDelivery: Date,
+      deliveredDate: Date,
+      deliveryAddress: String,
     },
     
     // Pickup/Delivery details
