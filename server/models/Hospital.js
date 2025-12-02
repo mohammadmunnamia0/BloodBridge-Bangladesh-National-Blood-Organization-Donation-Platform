@@ -72,10 +72,10 @@ const hospitalSchema = new mongoose.Schema({
     "O-": { type: Number, default: 0 },
   },
   pricing: {
-    bloodPrice: { type: Number, required: true },
-    processingFee: { type: Number, required: true },
-    screeningFee: { type: Number, required: true },
-    serviceCharge: { type: Number, required: true },
+    bloodPrice: { type: Number, default: 0 },
+    processingFee: { type: Number, default: 0 },
+    screeningFee: { type: Number, default: 0 },
+    serviceCharge: { type: Number, default: 0 },
     additionalFees: {
       crossMatching: { type: Number, default: 0 },
       storagePerDay: { type: Number, default: 0 },
@@ -121,6 +121,6 @@ hospitalSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const Hospital = mongoose.model("Hospital", hospitalSchema);
+const Hospital = mongoose.models.Hospital || mongoose.model("Hospital", hospitalSchema);
 
 export default Hospital;

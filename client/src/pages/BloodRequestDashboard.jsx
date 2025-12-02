@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "../utils/axios";
 import Modal from "../Components/Modal";
 
 const BloodRequestDashboard = () => {
@@ -9,7 +10,7 @@ const BloodRequestDashboard = () => {
   const [showModal, setShowModal] = useState(false);
   const navigate = useNavigate();
 
-  // Static dummy data
+  // Static dummy data (kept as fallback)
   const staticRequests = [
     {
       _id: "static1",
@@ -123,38 +124,37 @@ const BloodRequestDashboard = () => {
   };
 
   useEffect(() => {
-    const loadRequests = () => {
+    const loadRequests = async () => {
       try {
         setLoading(true);
         setError("");
 
-        // Get user requests from localStorage
+        // Fetch from API
+        const response = await axios.get("/api/public/blood-requests");
+        const apiRequests = response.data || [];
+        
+        // Get user requests from localStorage (for user-created requests not yet in DB)
         const userRequests = JSON.parse(
           localStorage.getItem("bloodRequests") || "[]"
         );
 
-        // Ensure user requests have isStatic flag set to false
-        const processedUserRequests = userRequests.map((request) => ({
-          ...request,
-          isStatic: false,
-        }));
+        // Combine API requests with user requests
+        const allRequests = [...apiRequests, ...userRequests];
 
-        // Combine user requests with static requests, ensuring user requests come first
-        const allRequests = [...processedUserRequests, ...staticRequests];
+        // Remove duplicates based on _id
+        const uniqueRequests = allRequests.filter((request, index, self) =>
+          index === self.findIndex((r) => r._id === request._id)
+        );
 
-        // Sort all requests by createdAt (newest first)
-        const sortedRequests = allRequests.sort((a, b) => {
-          // Always put non-static (user) requests first
-          if (!a.isStatic && b.isStatic) return -1;
-          if (a.isStatic && !b.isStatic) return 1;
-          // Then sort by date
+        // Sort by createdAt (newest first)
+        const sortedRequests = uniqueRequests.sort((a, b) => {
           return new Date(b.createdAt) - new Date(a.createdAt);
         });
 
         setRequests(sortedRequests);
       } catch (error) {
         console.error("Error loading blood requests:", error);
-        setError("Failed to load blood requests");
+        setError("Failed to load blood requests from server");
         // Fallback to static data
         setRequests(staticRequests);
       } finally {

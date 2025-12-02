@@ -1,7 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { hospitals } from "../Utlity/hospitals";
-import { organizationsData } from "../utils/organizationsData";
+import axios from "axios";
 
 const PriceComparison = () => {
   const navigate = useNavigate();
@@ -9,17 +8,38 @@ const PriceComparison = () => {
   const [filterType, setFilterType] = useState("all"); // all, organizations, hospitals
   const [searchBloodType, setSearchBloodType] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [hospitals, setHospitals] = useState([]);
+  const [organizations, setOrganizations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [hospsResponse, orgsResponse] = await Promise.all([
+          axios.get("http://localhost:5000/api/public/hospitals"),
+          axios.get("http://localhost:5000/api/public/organizations"),
+        ]);
+        setHospitals(hospsResponse.data);
+        setOrganizations(orgsResponse.data);
+        setError(null);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
   // Get all sources
   const getAllSources = () => {
-    const orgs = [
-      ...organizationsData.national,
-      ...organizationsData.hospital,
-      ...organizationsData.digital,
-    ].map((org) => ({ ...org, type: "organization" }));
-
+    const orgs = organizations.map((org) => ({ ...org, type: "organization" }));
     const hosps = hospitals.map((hosp) => ({ ...hosp, type: "hospital" }));
 
     let allSources = [...orgs, ...hosps];
@@ -84,7 +104,22 @@ const PriceComparison = () => {
           find the best option for your needs.
         </p>
 
-        {/* Filters */}
+        {loading ? (
+          <div className="text-center py-12">
+            <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+            <p className="mt-4 text-gray-600">Loading price comparison...</p>
+          </div>
+        ) : error ? (
+          <div className="text-center py-12 bg-red-50 rounded-lg">
+            <p className="text-red-600 text-lg">{error}</p>
+          </div>
+        ) : sources.length === 0 ? (
+          <div className="text-center py-12 bg-yellow-50 rounded-lg">
+            <p className="text-yellow-800 text-lg">No data available for comparison.</p>
+          </div>
+        ) : (
+          <>
+            {/* Filters */}
         <div className="max-w-4xl mx-auto mb-8">
           <div className="bg-white rounded-xl shadow-lg p-6">
             <div className="grid md:grid-cols-3 gap-4">
@@ -197,7 +232,7 @@ const PriceComparison = () => {
 
                   return (
                     <tr
-                      key={`${source.type}-${source.id}`}
+                      key={`${source.type}-${source._id || source.id}`}
                       className={`border-b hover:bg-gray-50 transition-colors ${
                         isLowest ? "bg-green-50" : ""
                       }`}
@@ -310,6 +345,8 @@ const PriceComparison = () => {
             </li>
           </ul>
         </div>
+          </>
+        )}
       </div>
     </div>
   );

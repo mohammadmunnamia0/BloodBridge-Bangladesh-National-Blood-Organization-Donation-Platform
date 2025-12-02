@@ -1,5 +1,4 @@
 import jwt from "jsonwebtoken";
-import User from "../models/User.js";
 
 const adminAuth = async (req, res, next) => {
   try {
@@ -15,27 +14,22 @@ const adminAuth = async (req, res, next) => {
     // Verify token
     const decoded = jwt.verify(
       token,
-      process.env.JWT_SECRET || "bloodservice_secret_key_2024"
+      process.env.JWT_SECRET
     );
 
-    // Find user and check if admin
-    const user = await User.findById(decoded.userId).select("-password");
-
-    if (!user) {
-      return res.status(401).json({
-        message: "User not found",
-      });
-    }
-
-    if (user.role !== "admin") {
+    // Check if it's an admin token (has adminId or role)
+    if (!decoded.adminId && !decoded.role) {
       return res.status(403).json({
         message: "Access denied. Admin privileges required.",
       });
     }
 
-    // Attach user info to request
-    req.userId = decoded.userId;
-    req.user = user;
+    // Attach admin info to request
+    req.adminId = decoded.adminId;
+    req.adminRole = decoded.role;
+    req.organizationId = decoded.organizationId;
+    req.hospitalId = decoded.hospitalId;
+    
     next();
   } catch (error) {
     console.error("Admin auth error:", error);

@@ -19,9 +19,9 @@ const AdminPurchases = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.role !== "admin") {
-      navigate("/");
+    const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
+    if (!isAdminLoggedIn || isAdminLoggedIn !== "true") {
+      navigate("/admin");
       return;
     }
     fetchPurchases();
@@ -29,14 +29,14 @@ const AdminPurchases = () => {
 
   const fetchPurchases = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const adminToken = localStorage.getItem("adminToken");
       const params = new URLSearchParams();
       if (filter.status !== "all") params.append("status", filter.status);
       if (filter.sourceType !== "all") params.append("sourceType", filter.sourceType);
       if (filter.bloodType !== "all") params.append("bloodType", filter.bloodType);
 
-      const response = await axios.get(`/admin/purchases?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const response = await axios.get(`/api/admin/purchases?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       setPurchases(response.data.purchases);
       setLoading(false);
@@ -62,9 +62,9 @@ const AdminPurchases = () => {
   const handleSubmitUpdate = async (e) => {
     e.preventDefault();
     try {
-      const token = localStorage.getItem("token");
+      const adminToken = localStorage.getItem("adminToken");
       await axios.patch(
-        `/admin/purchases/${selectedPurchase._id}/status`,
+        `/api/admin/purchases/${selectedPurchase._id}/status`,
         {
           status: updateForm.status,
           adminNotes: updateForm.adminNotes,
@@ -75,7 +75,7 @@ const AdminPurchases = () => {
             instructions: updateForm.pickupInstructions,
           },
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       setShowModal(false);
       fetchPurchases();

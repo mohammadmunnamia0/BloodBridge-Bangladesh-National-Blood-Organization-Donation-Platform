@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { organizationsData } from "../utils/organizationsData";
-import { hospitals } from "../Utlity/hospitals";
+import axios from "../utils/axios";
 
 const AdminPricing = () => {
   const [sources, setSources] = useState([]);
@@ -9,35 +8,52 @@ const AdminPricing = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [pricing, setPricing] = useState({});
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.role !== "admin") {
-      navigate("/");
+    const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
+    if (!isAdminLoggedIn || isAdminLoggedIn !== "true") {
+      navigate("/admin");
       return;
     }
     loadSources();
   }, [navigate, filter]);
 
-  const loadSources = () => {
-    let allSources = [];
+  const loadSources = async () => {
+    try {
+      setLoading(true);
+      const adminToken = localStorage.getItem("adminToken");
+      let allSources = [];
 
-    if (filter === "all" || filter === "organization") {
-      const orgs = [
-        ...organizationsData.national.map((org) => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.hospital.map((org) => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.digital.map((org) => ({ ...org, sourceType: "organization" })),
-      ];
-      allSources = [...allSources, ...orgs];
+      if (filter === "all" || filter === "organization") {
+        const orgResponse = await axios.get("/api/admin/organizations", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        const orgs = orgResponse.data.organizations.map((org) => ({
+          ...org,
+          sourceType: "organization",
+        }));
+        allSources = [...allSources, ...orgs];
+      }
+
+      if (filter === "all" || filter === "hospital") {
+        const hospResponse = await axios.get("/api/admin/hospitals", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        const hosps = hospResponse.data.hospitals.map((h) => ({
+          ...h,
+          sourceType: "hospital",
+        }));
+        allSources = [...allSources, ...hosps];
+      }
+
+      setSources(allSources);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error loading sources:", error);
+      setLoading(false);
     }
-
-    if (filter === "all" || filter === "hospital") {
-      const hosp = hospitals.map((h) => ({ ...h, sourceType: "hospital" }));
-      allSources = [...allSources, ...hosp];
-    }
-
-    setSources(allSources);
   };
 
   const handleEditPricing = (item) => {
@@ -47,6 +63,8 @@ const AdminPricing = () => {
       processingFee: item.pricing?.processingFee || 0,
       screeningFee: item.pricing?.screeningFee || 0,
       serviceCharge: item.pricing?.serviceCharge || 0,
+      deliveryCharge: item.pricing?.deliveryCharge || 0,
+      handlingFee: item.pricing?.handlingFee || 0,
       crossMatching: item.additionalFees?.crossMatching || 0,
       storagePerDay: item.additionalFees?.storagePerDay || 0,
     });
@@ -60,18 +78,46 @@ const AdminPricing = () => {
     });
   };
 
-  const handleSavePricing = () => {
-    const totalBase =
-      pricing.bloodPrice +
-      pricing.processingFee +
-      pricing.screeningFee +
-      pricing.serviceCharge;
+  const handleSavePricing = async () => {
+    try {
+      const adminToken = localStorage.getItem("adminToken");
+      const endpoint = editingItem.sourceType === "hospital"
+        ? `/api/admin/hospitals/${editingItem._id}/pricing`
+        : `/api/admin/organizations/${editingItem._id}/pricing`;
 
-    alert(
-      `Pricing updated for ${editingItem.name}!\n\nBase Total: ৳${totalBase}\n\nIn production, this would save to database.`
-    );
-    setShowModal(false);
-    loadSources();
+      const pricingData = editingItem.sourceType === "hospital"
+        ? {
+            pricing: {
+              bloodPrice: pricing.bloodPrice,
+              processingFee: pricing.processingFee,
+              screeningFee: pricing.screeningFee,
+              serviceCharge: pricing.serviceCharge,
+            },
+            additionalFees: {
+              crossMatching: pricing.crossMatching,
+              storagePerDay: pricing.storagePerDay,
+            },
+          }
+        : {
+            pricing: {
+              bloodPrice: pricing.bloodPrice,
+              processingFee: pricing.processingFee,
+              deliveryCharge: pricing.deliveryCharge,
+              handlingFee: pricing.handlingFee,
+            },
+          };
+
+      await axios.patch(endpoint, pricingData, {
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      alert(`Pricing updated successfully for ${editingItem.name}!`);
+      setShowModal(false);
+      loadSources();
+    } catch (error) {
+      console.error("Error updating pricing:", error);
+      alert("Failed to update pricing. Please try again.");
+    }
   };
 
   const calculateTotal = (item) => {
@@ -94,7 +140,7 @@ const AdminPricing = () => {
             <p className="text-gray-600 mt-2">Manage pricing and fees across all sources</p>
           </div>
           <button
-            onClick={() => navigate("/admin")}
+            onClick={() => navigate("/admin/dashboard")}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
           >
             Back to Dashboard
@@ -135,10 +181,20 @@ const AdminPricing = () => {
           </button>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="space-y-4">
-          {sources.map((item, index) => {
-            const total = calculateTotal(item);
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+          </div>
+        ) : sources.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <p className="text-gray-600">No sources found. Please add hospitals or organizations first.</p>
+          </div>
+        ) : (
+          /* Pricing Cards */
+          <div className="space-y-4">
+            {sources.map((item, index) => {
+              const total = calculateTotal(item);
 
             return (
               <div key={index} className="bg-white rounded-lg shadow-md p-6">
@@ -202,7 +258,7 @@ const AdminPricing = () => {
                           </p>
                         </div>
                       )}
-                      {item.additionalFees.storagePerDay && (
+                      {item.additionalFees && item.additionalFees.storagePerDay && (
                         <div className="bg-blue-50 rounded-lg p-3">
                           <p className="text-sm text-gray-600">Storage (per day)</p>
                           <p className="text-lg font-semibold text-blue-800">
@@ -216,7 +272,8 @@ const AdminPricing = () => {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

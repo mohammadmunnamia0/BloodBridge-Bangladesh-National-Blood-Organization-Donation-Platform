@@ -20,6 +20,11 @@ import AdminPurchases from "../pages/AdminPurchases";
 import AdminAnalytics from "../pages/AdminAnalytics";
 import AdminInventory from "../pages/AdminInventory";
 import AdminPricing from "../pages/AdminPricing";
+import AdminDonors from "../pages/AdminDonors";
+import AdminBloodRequests from "../pages/AdminBloodRequests";
+import AdminUsers from "../pages/AdminUsers";
+import AdminHospitals from "../pages/AdminHospitals";
+import AdminOrganizations from "../pages/AdminOrganizations";
 import PurchaseBlood from "../pages/PurchaseBlood";
 import PurchaseSuccess from "../pages/PurchaseSuccess";
 import RegisterOrganization from "../pages/RegisterOrganization";
@@ -127,6 +132,26 @@ const router = createBrowserRouter([
       {
         path: "/admin/pricing",
         element: <AdminPricing />,
+      },
+      {
+        path: "/admin/donors",
+        element: <AdminDonors />,
+      },
+      {
+        path: "/admin/blood-requests",
+        element: <AdminBloodRequests />,
+      },
+      {
+        path: "/admin/users",
+        element: <AdminUsers />,
+      },
+      {
+        path: "/admin/hospitals",
+        element: <AdminHospitals />,
+      },
+      {
+        path: "/admin/organizations",
+        element: <AdminOrganizations />,
       },
     ],
   },

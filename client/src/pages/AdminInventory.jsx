@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { organizationsData } from "../utils/organizationsData";
-import { hospitals } from "../Utlity/hospitals";
+import axios from "../utils/axios";
 
 const AdminInventory = () => {
   const [inventory, setInventory] = useState([]);
@@ -9,35 +8,52 @@ const AdminInventory = () => {
   const [editingItem, setEditingItem] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [bloodStock, setBloodStock] = useState({});
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.role !== "admin") {
-      navigate("/");
+    const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
+    if (!isAdminLoggedIn || isAdminLoggedIn !== "true") {
+      navigate("/admin");
       return;
     }
     loadInventory();
   }, [navigate, filter]);
 
-  const loadInventory = () => {
-    let allSources = [];
+  const loadInventory = async () => {
+    try {
+      setLoading(true);
+      const adminToken = localStorage.getItem("adminToken");
+      let allSources = [];
 
-    if (filter === "all" || filter === "organization") {
-      const orgs = [
-        ...organizationsData.national.map((org) => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.hospital.map((org) => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.digital.map((org) => ({ ...org, sourceType: "organization" })),
-      ];
-      allSources = [...allSources, ...orgs];
+      if (filter === "all" || filter === "organization") {
+        const orgResponse = await axios.get("/api/admin/organizations", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        const orgs = orgResponse.data.organizations.map((org) => ({
+          ...org,
+          sourceType: "organization",
+        }));
+        allSources = [...allSources, ...orgs];
+      }
+
+      if (filter === "all" || filter === "hospital") {
+        const hospResponse = await axios.get("/api/admin/hospitals", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        });
+        const hosps = hospResponse.data.hospitals.map((h) => ({
+          ...h,
+          sourceType: "hospital",
+        }));
+        allSources = [...allSources, ...hosps];
+      }
+
+      setInventory(allSources);
+      setLoading(false);
+    } catch (error) {
+      console.error("Error loading inventory:", error);
+      setLoading(false);
     }
-
-    if (filter === "all" || filter === "hospital") {
-      const hosp = hospitals.map((h) => ({ ...h, sourceType: "hospital" }));
-      allSources = [...allSources, ...hosp];
-    }
-
-    setInventory(allSources);
   };
 
   const handleEditInventory = (item) => {
@@ -53,12 +69,26 @@ const AdminInventory = () => {
     });
   };
 
-  const handleSaveInventory = () => {
-    // In a real application, this would update the backend/database
-    // For now, we'll just update the local state
-    alert(`Inventory updated for ${editingItem.name}!\n\nIn production, this would save to database.`);
-    setShowModal(false);
-    loadInventory();
+  const handleSaveInventory = async () => {
+    try {
+      const adminToken = localStorage.getItem("adminToken");
+      const endpoint = editingItem.sourceType === "hospital" 
+        ? `/api/admin/hospitals/${editingItem._id}/inventory`
+        : `/api/admin/organizations/${editingItem._id}/inventory`;
+
+      await axios.patch(
+        endpoint,
+        { bloodInventory: bloodStock },
+        { headers: { Authorization: `Bearer ${adminToken}` } }
+      );
+
+      alert(`Inventory updated successfully for ${editingItem.name}!`);
+      setShowModal(false);
+      loadInventory();
+    } catch (error) {
+      console.error("Error updating inventory:", error);
+      alert("Failed to update inventory. Please try again.");
+    }
   };
 
   const getTotalStock = (bloodInventory) => {
@@ -88,7 +118,7 @@ const AdminInventory = () => {
             <p className="text-gray-600 mt-2">Manage blood stock across all sources</p>
           </div>
           <button
-            onClick={() => navigate("/admin")}
+            onClick={() => navigate("/admin/dashboard")}
             className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
           >
             Back to Dashboard
@@ -129,11 +159,21 @@ const AdminInventory = () => {
           </button>
         </div>
 
-        {/* Inventory Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {inventory.map((item, index) => {
-            const totalStock = getTotalStock(item.bloodInventory);
-            const lowStockCount = getLowStockCount(item.bloodInventory);
+        {/* Loading State */}
+        {loading ? (
+          <div className="flex justify-center items-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+          </div>
+        ) : inventory.length === 0 ? (
+          <div className="bg-white rounded-lg shadow-md p-8 text-center">
+            <p className="text-gray-600">No inventory found. Please add hospitals or organizations first.</p>
+          </div>
+        ) : (
+          /* Inventory Cards */
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {inventory.map((item, index) => {
+              const totalStock = getTotalStock(item.bloodInventory);
+              const lowStockCount = getLowStockCount(item.bloodInventory);
 
             return (
               <div key={index} className="bg-white rounded-lg shadow-md p-6">
@@ -183,7 +223,8 @@ const AdminInventory = () => {
               </div>
             );
           })}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Edit Modal */}

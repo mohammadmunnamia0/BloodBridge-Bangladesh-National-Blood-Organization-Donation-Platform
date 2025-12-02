@@ -84,6 +84,29 @@ const userSchema = new mongoose.Schema({
     enum: ["donor", "admin"],
     default: "donor",
   },
+  
+  // Ban Management
+  isBanned: {
+    type: Boolean,
+    default: false,
+  },
+  banReason: {
+    type: String,
+  },
+  bannedAt: {
+    type: Date,
+  },
+  bannedBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "User",
+  },
+  
+  // Demo User Flag
+  isDemoUser: {
+    type: Boolean,
+    default: false,
+  },
+  
   createdAt: {
     type: Date,
     default: Date.now,

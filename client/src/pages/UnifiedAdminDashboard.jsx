@@ -18,52 +18,44 @@ const UnifiedAdminDashboard = () => {
     const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
     const storedAdminUser = localStorage.getItem("adminUser");
 
-    if (!isAdminLoggedIn || !storedAdminUser) {
+    if (!isAdminLoggedIn || isAdminLoggedIn !== "true" || !storedAdminUser) {
+      console.log("Admin not logged in, redirecting...");
       navigate("/admin");
       return;
     }
 
-    const admin = JSON.parse(storedAdminUser);
-    setAdminUser(admin);
+    try {
+      const admin = JSON.parse(storedAdminUser);
+      setAdminUser(admin);
 
-    // Load todos from localStorage
-    const storedTodos = localStorage.getItem(`adminTodos_${admin.username}`);
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
-    } else {
-      // Default todos based on role
-      const defaultTodos = getDefaultTodosByRole(admin.role);
-      setTodos(defaultTodos);
-      localStorage.setItem(`adminTodos_${admin.username}`, JSON.stringify(defaultTodos));
+      // Load todos from localStorage
+      const storedTodos = localStorage.getItem(`adminTodos_${admin.username}`);
+      if (storedTodos) {
+        setTodos(JSON.parse(storedTodos));
+      } else {
+        // Default todos based on role
+        const defaultTodos = getDefaultTodosByRole(admin.role);
+        setTodos(defaultTodos);
+        localStorage.setItem(`adminTodos_${admin.username}`, JSON.stringify(defaultTodos));
+      }
+
+      // Load stats from API
+      loadStatsFromAPI(admin.token);
+    } catch (error) {
+      console.error("Error parsing admin user data:", error);
+      navigate("/admin");
     }
-
-    // Load stats from API
-    loadStatsFromAPI(admin.token);
   }, [navigate]);
 
   const getDefaultTodosByRole = (role) => {
-    const commonTodos = {
-      super_admin: [
-        { id: 1, text: "Review all pending blood purchase requests", completed: false, priority: "high", category: "Purchases" },
-        { id: 2, text: "Manage organization and hospital admins", completed: false, priority: "high", category: "Admin Management" },
-        { id: 3, text: "Update global blood pricing", completed: false, priority: "medium", category: "Pricing" },
-        { id: 4, text: "Review platform-wide analytics", completed: false, priority: "medium", category: "Analytics" },
-        { id: 5, text: "Create new organization entry", completed: false, priority: "low", category: "Organizations" },
-      ],
-      org_admin: [
-        { id: 1, text: "Approve pending orders for my organization", completed: false, priority: "high", category: "Orders" },
-        { id: 2, text: "Update organization blood inventory", completed: false, priority: "high", category: "Inventory" },
-        { id: 3, text: "Update shipping status for processed orders", completed: false, priority: "medium", category: "Shipping" },
-        { id: 4, text: "Review organization customer feedback", completed: false, priority: "low", category: "Customers" },
-      ],
-      hospital_admin: [
-        { id: 1, text: "Confirm blood requests for hospital", completed: false, priority: "high", category: "Requests" },
-        { id: 2, text: "Update hospital blood stock levels", completed: false, priority: "high", category: "Inventory" },
-        { id: 3, text: "Process delivery for confirmed orders", completed: false, priority: "medium", category: "Delivery" },
-        { id: 4, text: "Update hospital contact information", completed: false, priority: "low", category: "Hospital Info" },
-      ]
-    };
-    return commonTodos[role] || [];
+    const defaultTodos = [
+      { id: 1, text: "Review pending blood purchase requests", completed: false, priority: "high", category: "Purchases" },
+      { id: 2, text: "Check and update blood inventory levels", completed: false, priority: "high", category: "Inventory" },
+      { id: 3, text: "Review new blood donation requests", completed: false, priority: "medium", category: "Requests" },
+      { id: 4, text: "Analyze platform analytics and trends", completed: false, priority: "medium", category: "Analytics" },
+      { id: 5, text: "Update blood pricing if needed", completed: false, priority: "low", category: "Pricing" },
+    ];
+    return defaultTodos;
   };
 
   const loadStatsFromAPI = async (token) => {
@@ -169,253 +161,102 @@ const UnifiedAdminDashboard = () => {
 
   const getTaskMenuByRole = (role) => {
     const superAdminTasks = [
-      { title: "Manage All Blood Requests", icon: "📋", link: "/blood-requests", color: "from-blue-500 to-blue-600" },
-      { title: "Manage Organizations", icon: "🏢", link: "/admin/organizations", color: "from-indigo-500 to-indigo-600" },
-      { title: "Manage Hospitals", icon: "🏥", link: "/admin/hospitals", color: "from-green-500 to-green-600" },
-      { title: "Manage Admins", icon: "👥", link: "/admin/admins", color: "from-purple-500 to-purple-600" },
-      { title: "Global Pricing", icon: "💵", link: "/admin/pricing", color: "from-orange-500 to-orange-600" },
-      { title: "All Orders", icon: "📦", link: "/admin/orders", color: "from-red-500 to-red-600" },
-      { title: "Platform Analytics", icon: "📊", link: "/admin/analytics", color: "from-pink-500 to-pink-600" },
-      { title: "Override Management", icon: "🔧", link: "/admin/override", color: "from-yellow-500 to-yellow-600" },
+      { title: "Manage Users", icon: "👤", link: "/admin/users", color: "from-indigo-500 to-indigo-600" },
+      { title: "Manage Blood Requests", icon: "📋", link: "/admin/blood-requests", color: "from-blue-500 to-blue-600" },
+      { title: "Manage Purchases", icon: "📦", link: "/admin/purchases", color: "from-red-500 to-red-600" },
+      { title: "View All Donors", icon: "👥", link: "/admin/donors", color: "from-green-500 to-green-600" },
+      { title: "Manage Hospitals", icon: "🏥", link: "/admin/hospitals", color: "from-cyan-500 to-cyan-600" },
+      { title: "Manage Organizations", icon: "🏢", link: "/admin/organizations", color: "from-teal-500 to-teal-600" },
+      { title: "Manage Inventory", icon: "🩸", link: "/admin/inventory", color: "from-purple-500 to-purple-600" },
+      { title: "Update Pricing", icon: "💵", link: "/admin/pricing", color: "from-orange-500 to-orange-600" },
+      { title: "View Analytics", icon: "📊", link: "/admin/analytics", color: "from-pink-500 to-pink-600" },
     ];
 
-    const orgAdminTasks = [
-      { title: "My Organization Orders", icon: "📦", link: "/admin/org-orders", color: "from-blue-500 to-blue-600" },
-      { title: "Approve/Reject Orders", icon: "✅", link: "/admin/approve-orders", color: "from-green-500 to-green-600" },
-      { title: "Update Shipping Status", icon: "🚚", link: "/admin/shipping", color: "from-purple-500 to-purple-600" },
-      { title: "Organization Inventory", icon: "🩸", link: "/admin/org-inventory", color: "from-red-500 to-red-600" },
-      { title: "Edit Organization Info", icon: "✏️", link: "/admin/org-info", color: "from-indigo-500 to-indigo-600" },
-      { title: "Customer History", icon: "👥", link: "/admin/customers", color: "from-orange-500 to-orange-600" },
-    ];
-
-    const hospitalAdminTasks = [
-      { title: "Hospital Orders", icon: "📦", link: "/admin/hospital-orders", color: "from-blue-500 to-blue-600" },
-      { title: "Confirm/Reject Orders", icon: "✅", link: "/admin/confirm-orders", color: "from-green-500 to-green-600" },
-      { title: "Delivery Management", icon: "🚚", link: "/admin/delivery", color: "from-purple-500 to-purple-600" },
-      { title: "Hospital Blood Stock", icon: "🩸", link: "/admin/hospital-inventory", color: "from-red-500 to-red-600" },
-      { title: "Edit Hospital Details", icon: "✏️", link: "/admin/hospital-info", color: "from-indigo-500 to-indigo-600" },
-      { title: "Order History", icon: "📋", link: "/admin/order-history", color: "from-orange-500 to-orange-600" },
-    ];
-
-    switch (role) {
-      case "super_admin":
-        return superAdminTasks;
-      case "org_admin":
-        return orgAdminTasks;
-      case "hospital_admin":
-        return hospitalAdminTasks;
-      default:
-        return [];
-    }
+    return superAdminTasks;
   };
 
   const renderStats = () => {
-    if (adminUser.role === "super_admin") {
-      return (
-        <>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Organizations</p>
-                <p className="text-3xl font-bold text-indigo-600">{stats.totalOrganizations}</p>
-              </div>
-              <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">🏢</span>
-              </div>
+    return (
+      <>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Users</p>
+              <p className="text-3xl font-bold text-blue-600">{stats.totalUsers || 0}</p>
+              <p className="text-xs text-green-600 mt-1">+{stats.recentUsers || 0} this month</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">👥</span>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Hospitals</p>
-                <p className="text-3xl font-bold text-green-600">{stats.totalHospitals}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">🏥</span>
-              </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Donors</p>
+              <p className="text-3xl font-bold text-red-600">{stats.totalDonors || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Registered donors</p>
+            </div>
+            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">🩸</span>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Admins</p>
-                <p className="text-3xl font-bold text-purple-600">{stats.totalAdmins}</p>
-              </div>
-              <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">👥</span>
-              </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Blood Requests</p>
+              <p className="text-3xl font-bold text-purple-600">{stats.totalBloodRequests || 0}</p>
+              <p className="text-xs text-yellow-600 mt-1">{stats.pendingBloodRequests || 0} pending</p>
+            </div>
+            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">📋</span>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Orders</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.totalOrders}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📦</span>
-              </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Purchases</p>
+              <p className="text-3xl font-bold text-indigo-600">{stats.totalPurchases || 0}</p>
+              <p className="text-xs text-orange-600 mt-1">{stats.pendingPurchases || 0} pending</p>
+            </div>
+            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">📦</span>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Pending Approvals</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pendingApprovals}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">⏳</span>
-              </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Completed Orders</p>
+              <p className="text-3xl font-bold text-green-600">{stats.completedPurchases || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">{stats.inProgressPurchases || 0} in progress</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">✅</span>
             </div>
           </div>
+        </div>
 
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-                <p className="text-2xl font-bold text-green-600">{stats.totalRevenue}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">💰</span>
-              </div>
+        <div className="bg-white rounded-xl shadow-md p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
+              <p className="text-2xl font-bold text-green-600">{stats.totalRevenue || '৳0'}</p>
+              <p className="text-xs text-gray-500 mt-1">{stats.monthlyRevenue || '৳0'} this month</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+              <span className="text-2xl">💰</span>
             </div>
           </div>
-        </>
-      );
-    } else if (adminUser.role === "org_admin") {
-      return (
-        <>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Organization Orders</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.organizationOrders}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📦</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Pending Orders</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pendingOrders}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">⏳</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Blood Units Available</p>
-                <p className="text-3xl font-bold text-red-600">{stats.bloodUnitsAvailable}</p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">🩸</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Completed Orders</p>
-                <p className="text-3xl font-bold text-green-600">{stats.completedOrders}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">✅</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-green-600">{stats.monthlyRevenue}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">💰</span>
-              </div>
-            </div>
-          </div>
-        </>
-      );
-    } else if (adminUser.role === "hospital_admin") {
-      return (
-        <>
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Hospital Orders</p>
-                <p className="text-3xl font-bold text-blue-600">{stats.hospitalOrders}</p>
-              </div>
-              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">📦</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Pending Requests</p>
-                <p className="text-3xl font-bold text-yellow-600">{stats.pendingRequests}</p>
-              </div>
-              <div className="w-12 h-12 bg-yellow-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">⏳</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Blood Units Stock</p>
-                <p className="text-3xl font-bold text-red-600">{stats.bloodUnitsStock}</p>
-              </div>
-              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">🩸</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Completed Deliveries</p>
-                <p className="text-3xl font-bold text-green-600">{stats.completedDeliveries}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">✅</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-md p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600 mb-1">Monthly Revenue</p>
-                <p className="text-2xl font-bold text-green-600">{stats.monthlyRevenue}</p>
-              </div>
-              <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-                <span className="text-2xl">💰</span>
-              </div>
-            </div>
-          </div>
-        </>
-      );
-    }
-    return null;
+        </div>
+      </>
+    );
   };
 
   if (!adminUser) {
@@ -437,20 +278,15 @@ const UnifiedAdminDashboard = () => {
             <div>
               <div className="flex items-center gap-3 mb-2">
                 <h1 className="text-3xl font-bold text-gray-900">
-                  {getRoleLabel(adminUser.role)} Dashboard
+                  Admin Dashboard
                 </h1>
-                <span className={`px-3 py-1 rounded-full text-xs font-semibold border ${getRoleBadgeColor(adminUser.role)}`}>
-                  {getRoleLabel(adminUser.role)}
+                <span className="px-3 py-1 rounded-full text-xs font-semibold border bg-purple-100 text-purple-800 border-purple-300">
+                  Administrator
                 </span>
               </div>
               <p className="text-gray-600">
-                Welcome back, <span className="font-semibold">{adminUser.name}</span>
+                Welcome back, <span className="font-semibold">{adminUser.name || adminUser.username}</span>
               </p>
-              {(adminUser.organizationName || adminUser.hospitalName) && (
-                <p className="text-sm text-gray-500 mt-1">
-                  Managing: <span className="font-medium text-gray-700">{adminUser.organizationName || adminUser.hospitalName}</span>
-                </p>
-              )}
             </div>
             <button
               onClick={handleLogout}
@@ -465,8 +301,14 @@ const UnifiedAdminDashboard = () => {
         </div>
 
         {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
-          {renderStats()}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
+          {loading ? (
+            <div className="col-span-full text-center py-8">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600 mx-auto"></div>
+            </div>
+          ) : (
+            renderStats()
+          )}
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -601,19 +443,15 @@ const UnifiedAdminDashboard = () => {
           </div>
         </div>
 
-        {/* Pending Organizations Section (Super Admin Only) */}
-        {adminUser.role === "super_admin" && (
-          <div className="mt-8">
-            <PendingOrganizations />
-          </div>
-        )}
+        {/* Pending Organizations Section */}
+        <div className="mt-8">
+          <PendingOrganizations />
+        </div>
 
-        {/* Pending Hospitals Section (Super Admin Only) */}
-        {adminUser.role === "super_admin" && (
-          <div className="mt-8">
-            <PendingHospitals />
-          </div>
-        )}
+        {/* Pending Hospitals Section */}
+        <div className="mt-8">
+          <PendingHospitals />
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,8 @@ import authRoutes from "./routes/auth.js";
 import bloodRequestRoutes from "./routes/bloodRequests.js";
 import bloodPurchaseRoutes from "./routes/bloodPurchases.js";
 import donorRoutes from "./routes/donors.js";
-import adminRoutes from "./routes/adminRoutes.js";
+import adminRoutes from "./routes/admin.js";
+import publicRoutes from "./routes/public.js";
 
 dotenv.config();
 
@@ -134,6 +135,7 @@ connectDB()
     app.use("/api/blood-requests", bloodRequestRoutes);
     app.use("/api/blood-purchases", bloodPurchaseRoutes);
     app.use("/api/admin", adminRoutes);
+    app.use("/api/public", publicRoutes);
 
     // Basic route for testing
     app.get("/", (req, res) => {

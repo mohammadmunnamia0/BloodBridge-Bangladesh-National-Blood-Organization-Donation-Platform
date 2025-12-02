@@ -121,6 +121,6 @@ organizationSchema.methods.comparePassword = async function (candidatePassword) 
   return await bcrypt.compare(candidatePassword, this.password);
 };
 
-const Organization = mongoose.model("Organization", organizationSchema);
+const Organization = mongoose.models.Organization || mongoose.model("Organization", organizationSchema);
 
 export default Organization;
