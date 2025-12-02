@@ -1,16 +1,21 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "../utils/axios";
 
 const AdminDashboardMain = () => {
   const navigate = useNavigate();
   const [adminUser, setAdminUser] = useState(null);
-  const [todos, setTodos] = useState([]);
-  const [newTodo, setNewTodo] = useState("");
   const [stats, setStats] = useState({
     totalDonors: 0,
     pendingRequests: 0,
     bloodUnitsAvailable: 0,
     recentPurchases: 0,
+  });
+  const [notifications, setNotifications] = useState({
+    newRequests: 0,
+    newDonors: 0,
+    newPurchases: 0,
+    newUsers: 0,
   });
 
   useEffect(() => {
@@ -24,46 +29,7 @@ const AdminDashboardMain = () => {
     }
 
     setAdminUser(JSON.parse(storedAdminUser));
-
-    // Load todos from localStorage
-    const storedTodos = localStorage.getItem("adminTodos");
-    if (storedTodos) {
-      setTodos(JSON.parse(storedTodos));
-    } else {
-      // Default todos
-      const defaultTodos = [
-        {
-          id: 1,
-          text: "Review pending blood purchase requests",
-          completed: false,
-          priority: "high",
-          category: "Purchases",
-        },
-        {
-          id: 2,
-          text: "Update blood inventory levels",
-          completed: false,
-          priority: "medium",
-          category: "Inventory",
-        },
-        {
-          id: 3,
-          text: "Contact donors for upcoming blood drive",
-          completed: false,
-          priority: "medium",
-          category: "Donors",
-        },
-        {
-          id: 4,
-          text: "Generate monthly analytics report",
-          completed: false,
-          priority: "low",
-          category: "Reports",
-        },
-      ];
-      setTodos(defaultTodos);
-      localStorage.setItem("adminTodos", JSON.stringify(defaultTodos));
-    }
+    fetchNotifications();
 
     // Simulate loading stats
     setStats({
@@ -74,63 +40,59 @@ const AdminDashboardMain = () => {
     });
   }, [navigate]);
 
+  const fetchNotifications = async () => {
+    try {
+      const adminToken = localStorage.getItem("adminToken");
+      
+      // Fetch new items counts
+      const [requestsRes, donorsRes, purchasesRes] = await Promise.all([
+        axios.get("/api/admin/blood-requests?status=pending", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+        axios.get("/api/admin/donors?page=1&limit=100", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+        axios.get("/api/admin/blood-purchases?status=pending", {
+          headers: { Authorization: `Bearer ${adminToken}` },
+        }),
+      ]);
+
+      // Calculate new items since last login
+      const lastLogin = localStorage.getItem("adminLastLogin") || new Date().toISOString();
+      const lastLoginDate = new Date(lastLogin);
+
+      const newRequests = requestsRes.data.requests?.filter(
+        (r) => new Date(r.createdAt) > lastLoginDate
+      ).length || 0;
+
+      const newDonors = donorsRes.data.donors?.filter(
+        (d) => !d.isDemoUser && new Date(d.createdAt) > lastLoginDate
+      ).length || 0;
+
+      const newPurchases = purchasesRes.data.purchases?.filter(
+        (p) => new Date(p.createdAt) > lastLoginDate
+      ).length || 0;
+
+      setNotifications({
+        newRequests,
+        newDonors,
+        newPurchases,
+        newUsers: newDonors, // Same as new donors
+      });
+
+      // Update last login time
+      localStorage.setItem("adminLastLogin", new Date().toISOString());
+    } catch (error) {
+      console.error("Error fetching notifications:", error);
+    }
+  };
+
   const handleLogout = () => {
     localStorage.removeItem("isAdminLoggedIn");
     localStorage.removeItem("adminUser");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminLastLogin");
     navigate("/admin");
-  };
-
-  const addTodo = () => {
-    if (!newTodo.trim()) return;
-
-    const todo = {
-      id: Date.now(),
-      text: newTodo,
-      completed: false,
-      priority: "medium",
-      category: "General",
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedTodos = [...todos, todo];
-    setTodos(updatedTodos);
-    localStorage.setItem("adminTodos", JSON.stringify(updatedTodos));
-    setNewTodo("");
-  };
-
-  const toggleTodo = (id) => {
-    const updatedTodos = todos.map((todo) =>
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    );
-    setTodos(updatedTodos);
-    localStorage.setItem("adminTodos", JSON.stringify(updatedTodos));
-  };
-
-  const deleteTodo = (id) => {
-    const updatedTodos = todos.filter((todo) => todo.id !== id);
-    setTodos(updatedTodos);
-    localStorage.setItem("adminTodos", JSON.stringify(updatedTodos));
-  };
-
-  const updatePriority = (id, priority) => {
-    const updatedTodos = todos.map((todo) =>
-      todo.id === id ? { ...todo, priority } : todo
-    );
-    setTodos(updatedTodos);
-    localStorage.setItem("adminTodos", JSON.stringify(updatedTodos));
-  };
-
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case "high":
-        return "bg-red-100 text-red-800 border-red-300";
-      case "medium":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
-      case "low":
-        return "bg-green-100 text-green-800 border-green-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
   };
 
   const adminTasks = [
@@ -140,13 +102,17 @@ const AdminDashboardMain = () => {
       icon: "📋",
       link: "/blood-requests",
       color: "from-blue-500 to-blue-600",
+      hasNew: notifications.newRequests > 0,
+      newCount: notifications.newRequests,
     },
     {
       title: "Manage Donors",
       description: "View and manage registered blood donors",
       icon: "👥",
-      link: "/register-donor",
+      link: "/admin/donors",
       color: "from-green-500 to-green-600",
+      hasNew: notifications.newDonors > 0,
+      newCount: notifications.newDonors,
     },
     {
       title: "Blood Inventory",
@@ -154,13 +120,32 @@ const AdminDashboardMain = () => {
       icon: "🩸",
       link: "/admin/inventory",
       color: "from-red-500 to-red-600",
+      hasNew: false,
     },
     {
       title: "Purchase Management",
       description: "Track and manage blood purchases",
       icon: "💰",
-      link: "/purchase-dashboard",
+      link: "/admin/purchases",
       color: "from-purple-500 to-purple-600",
+      hasNew: notifications.newPurchases > 0,
+      newCount: notifications.newPurchases,
+    },
+    {
+      title: "Hospitals",
+      description: "Manage hospital accounts and details",
+      icon: "🏥",
+      link: "/admin/hospitals",
+      color: "from-teal-500 to-teal-600",
+      hasNew: false,
+    },
+    {
+      title: "Organizations",
+      description: "Manage blood donation organizations",
+      icon: "🏢",
+      link: "/admin/organizations",
+      color: "from-cyan-500 to-cyan-600",
+      hasNew: false,
     },
     {
       title: "Analytics & Reports",
@@ -168,13 +153,15 @@ const AdminDashboardMain = () => {
       icon: "📊",
       link: "/admin/analytics",
       color: "from-indigo-500 to-indigo-600",
+      hasNew: false,
     },
     {
       title: "Price Management",
       description: "Update blood pricing and fees",
       icon: "💵",
-      link: "/price-comparison",
+      link: "/admin/pricing",
       color: "from-orange-500 to-orange-600",
+      hasNew: false,
     },
   ];
 
@@ -260,136 +247,40 @@ const AdminDashboardMain = () => {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Admin Tasks */}
-          <div className="lg:col-span-2">
-            <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin Tasks</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {adminTasks.map((task, index) => (
-                <button
-                  key={index}
-                  onClick={() => navigate(task.link)}
-                  className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 text-left group"
-                >
-                  <div className={`w-12 h-12 bg-gradient-to-r ${task.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <span className="text-2xl">{task.icon}</span>
+        {/* Admin Tasks Grid */}
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin Dashboard</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {adminTasks.map((task, index) => (
+              <button
+                key={index}
+                onClick={() => navigate(task.link)}
+                className="bg-white rounded-xl shadow-md p-6 hover:shadow-xl transition-all duration-300 text-left group relative"
+              >
+                {/* Notification Dot */}
+                {task.hasNew && (
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
+                    <span className="relative flex h-3 w-3">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    {task.newCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                        {task.newCount}
+                      </span>
+                    )}
                   </div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2">
-                    {task.title}
-                  </h3>
-                  <p className="text-sm text-gray-600">{task.description}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Todo List */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-md p-6">
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">Admin To-Do List</h2>
-
-              {/* Add Todo */}
-              <div className="mb-6">
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newTodo}
-                    onChange={(e) => setNewTodo(e.target.value)}
-                    onKeyPress={(e) => e.key === "Enter" && addTodo()}
-                    placeholder="Add a new task..."
-                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  />
-                  <button
-                    onClick={addTodo}
-                    className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-colors"
-                  >
-                    Add
-                  </button>
-                </div>
-              </div>
-
-              {/* Todo Items */}
-              <div className="space-y-3 max-h-96 overflow-y-auto">
-                {todos.length === 0 ? (
-                  <p className="text-center text-gray-500 py-8">No tasks yet</p>
-                ) : (
-                  todos.map((todo) => (
-                    <div
-                      key={todo.id}
-                      className={`border rounded-lg p-3 ${
-                        todo.completed ? "bg-gray-50 opacity-60" : "bg-white"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={todo.completed}
-                          onChange={() => toggleTodo(todo.id)}
-                          className="mt-1 w-5 h-5 text-red-600 rounded focus:ring-red-500"
-                        />
-                        <div className="flex-1">
-                          <p
-                            className={`text-sm ${
-                              todo.completed
-                                ? "line-through text-gray-500"
-                                : "text-gray-900"
-                            }`}
-                          >
-                            {todo.text}
-                          </p>
-                          <div className="flex items-center gap-2 mt-2">
-                            <select
-                              value={todo.priority}
-                              onChange={(e) => updatePriority(todo.id, e.target.value)}
-                              className={`text-xs px-2 py-1 rounded border ${getPriorityColor(
-                                todo.priority
-                              )}`}
-                            >
-                              <option value="high">High</option>
-                              <option value="medium">Medium</option>
-                              <option value="low">Low</option>
-                            </select>
-                            <span className="text-xs text-gray-500">
-                              {todo.category}
-                            </span>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => deleteTodo(todo.id)}
-                          className="text-red-600 hover:text-red-700"
-                        >
-                          <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                            />
-                          </svg>
-                        </button>
-                      </div>
-                    </div>
-                  ))
                 )}
-              </div>
-
-              {/* Todo Stats */}
-              <div className="mt-6 pt-4 border-t">
-                <div className="flex justify-between text-sm text-gray-600">
-                  <span>
-                    Completed: {todos.filter((t) => t.completed).length}
-                  </span>
-                  <span>
-                    Pending: {todos.filter((t) => !t.completed).length}
-                  </span>
+                
+                <div className={`w-12 h-12 bg-gradient-to-r ${task.color} rounded-lg flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                  <span className="text-2xl">{task.icon}</span>
                 </div>
-              </div>
-            </div>
+                <h3 className="text-lg font-bold text-gray-900 mb-2">
+                  {task.title}
+                </h3>
+                <p className="text-sm text-gray-600">{task.description}</p>
+              </button>
+            ))}
           </div>
         </div>
       </div>
