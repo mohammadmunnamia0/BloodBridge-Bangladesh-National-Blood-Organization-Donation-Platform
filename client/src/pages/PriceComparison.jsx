@@ -1,6 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../utils/axios";
+import { hospitalsData } from "../utils/hospitalsData";
+import { organizationsData } from "../utils/organizationsData";
 
 const PriceComparison = () => {
   const navigate = useNavigate();
@@ -19,16 +21,26 @@ const PriceComparison = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
+        
+        // Get demo organizations
+        const demoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        
         const [hospsResponse, orgsResponse] = await Promise.all([
-          axios.get("http://localhost:5000/api/public/hospitals"),
-          axios.get("http://localhost:5000/api/public/organizations"),
+          axiosInstance.get("/public/hospitals").catch(() => ({ data: [] })),
+          axiosInstance.get("/public/organizations").catch(() => ({ data: [] })),
         ]);
-        setHospitals(hospsResponse.data);
-        setOrganizations(orgsResponse.data);
+        
+        // Merge demo data with database data
+        setHospitals([...hospitalsData, ...(hospsResponse.data || [])]);
+        setOrganizations([...demoOrgs, ...(orgsResponse.data || [])]);
         setError(null);
       } catch (err) {
         console.error("Error fetching data:", err);
-        setError("Failed to load data. Please try again later.");
+        // Even if API fails, show demo data
+        const demoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        setHospitals(hospitalsData);
+        setOrganizations(demoOrgs);
+        setError(null);
       } finally {
         setLoading(false);
       }

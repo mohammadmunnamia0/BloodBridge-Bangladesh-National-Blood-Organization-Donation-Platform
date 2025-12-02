@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../utils/axios";
+import { hospitalsData } from "../utils/hospitalsData";
 import {
   FaAmbulance,
   FaGlobe,
@@ -20,12 +21,19 @@ const Hospitals = () => {
     const fetchHospitals = async () => {
       try {
         setLoading(true);
-        const response = await axios.get("http://localhost:5000/api/public/hospitals");
-        setHospitals(response.data);
+        const response = await axiosInstance.get("/public/hospitals");
+        
+        // Merge demo data with database data
+        const dbData = response.data || [];
+        const mergedData = [...hospitalsData, ...dbData];
+        
+        setHospitals(mergedData);
         setError(null);
       } catch (err) {
         console.error("Error fetching hospitals:", err);
-        setError("Failed to load hospitals. Please try again later.");
+        // Even if API fails, show demo data
+        setHospitals(hospitalsData);
+        setError(null); // Don't show error if we have demo data
       } finally {
         setLoading(false);
       }

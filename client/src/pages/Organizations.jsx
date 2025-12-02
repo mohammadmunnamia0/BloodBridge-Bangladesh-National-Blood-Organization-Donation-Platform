@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import axiosInstance from "../utils/axios";
+import { organizationsData } from "../utils/organizationsData";
 
 const Organizations = () => {
   const navigate = useNavigate();
@@ -16,20 +17,38 @@ const Organizations = () => {
     { id: "digital", name: "Digital", icon: "💻" },
   ];
 
+  // Get demo data based on category
+  const getDemoData = () => {
+    if (activeCategory === "all") {
+      return [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+    }
+    return organizationsData[activeCategory] || [];
+  };
+
   useEffect(() => {
     const fetchOrganizations = async () => {
       try {
         setLoading(true);
-        const url = activeCategory === "all" 
-          ? "http://localhost:5000/api/public/organizations"
-          : `http://localhost:5000/api/public/organizations?category=${activeCategory}`;
+        const demoData = getDemoData();
         
-        const response = await axios.get(url);
-        setOrganizations(response.data);
+        const url = activeCategory === "all" 
+          ? "/public/organizations"
+          : `/public/organizations?category=${activeCategory}`;
+        
+        const response = await axiosInstance.get(url);
+        
+        // Merge demo data with database data
+        const dbData = response.data || [];
+        const mergedData = [...demoData, ...dbData];
+        
+        setOrganizations(mergedData);
         setError(null);
       } catch (err) {
         console.error("Error fetching organizations:", err);
-        setError("Failed to load organizations. Please try again later.");
+        // Even if API fails, show demo data
+        const demoData = getDemoData();
+        setOrganizations(demoData);
+        setError(null); // Don't show error if we have demo data
       } finally {
         setLoading(false);
       }
