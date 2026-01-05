@@ -5,6 +5,7 @@ import Admin from "../models/Admin.js";
 import Organization from "../models/Organization.js";
 import Hospital from "../models/Hospital.js";
 import BloodPurchase from "../models/BloodPurchase.js";
+import BloodRequest from "../models/BloodRequest.js";
 import User from "../models/User.js";
 
 const router = express.Router();
@@ -912,6 +913,364 @@ router.patch("/inventory/:type/:id", adminAuth, async (req, res) => {
   } catch (error) {
     console.error("Update inventory error:", error);
     res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update hospital inventory
+router.patch("/hospitals/:id/inventory", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bloodInventory } = req.body;
+    
+    // Verify admin has permission
+    if (req.adminRole === "hospital_admin" && id !== req.hospitalId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    const hospital = await Hospital.findByIdAndUpdate(
+      id,
+      { bloodInventory },
+      { new: true }
+    );
+    
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+    
+    res.json(hospital);
+  } catch (error) {
+    console.error("Update hospital inventory error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update organization inventory
+router.patch("/organizations/:id/inventory", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { bloodInventory } = req.body;
+    
+    // Verify admin has permission
+    if (req.adminRole === "org_admin" && id !== req.organizationId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    const organization = await Organization.findByIdAndUpdate(
+      id,
+      { bloodInventory },
+      { new: true }
+    );
+    
+    if (!organization) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+    
+    res.json(organization);
+  } catch (error) {
+    console.error("Update organization inventory error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update hospital pricing
+router.patch("/hospitals/:id/pricing", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pricing, additionalFees } = req.body;
+    
+    // Verify admin has permission
+    if (req.adminRole === "hospital_admin" && id !== req.hospitalId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    const updateData = { pricing };
+    if (additionalFees) {
+      updateData['pricing.additionalFees'] = additionalFees;
+    }
+    
+    const hospital = await Hospital.findByIdAndUpdate(
+      id,
+      updateData,
+      { new: true }
+    );
+    
+    if (!hospital) {
+      return res.status(404).json({ message: "Hospital not found" });
+    }
+    
+    res.json(hospital);
+  } catch (error) {
+    console.error("Update hospital pricing error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update organization pricing
+router.patch("/organizations/:id/pricing", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { pricing } = req.body;
+    
+    // Verify admin has permission
+    if (req.adminRole === "org_admin" && id !== req.organizationId) {
+      return res.status(403).json({ message: "Access denied" });
+    }
+    
+    const organization = await Organization.findByIdAndUpdate(
+      id,
+      { pricing },
+      { new: true }
+    );
+    
+    if (!organization) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+    
+    res.json(organization);
+  } catch (error) {
+    console.error("Update organization pricing error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all users (for admin)
+router.get("/users", adminAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 20, role, status } = req.query;
+
+    const query = {};
+    if (role && role !== "all") {
+      query.role = role;
+    }
+    if (status && status !== "all") {
+      query.isBanned = status === "banned";
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const users = await User.find(query)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Users fetch error:", error);
+    res.status(500).json({
+      message: "Error fetching users",
+      error: error.message,
+    });
+  }
+});
+
+// Ban/Unban user
+router.patch("/users/:id/ban", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBanned, banReason } = req.body;
+
+    const user = await User.findById(id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.isBanned = isBanned;
+    if (isBanned) {
+      user.banReason = banReason;
+      user.bannedAt = new Date();
+    } else {
+      user.banReason = null;
+      user.bannedAt = null;
+    }
+
+    await user.save();
+
+    res.json({
+      message: isBanned ? "User banned successfully" : "User unbanned successfully",
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        isBanned: user.isBanned,
+      },
+    });
+  } catch (error) {
+    console.error("Ban user error:", error);
+    res.status(500).json({
+      message: "Error updating user status",
+      error: error.message,
+    });
+  }
+});
+
+// ============================================
+// BLOOD REQUESTS MANAGEMENT
+// ============================================
+
+// Get all blood requests with filters
+router.get("/blood-requests", adminAuth, async (req, res) => {
+  try {
+    const { status, bloodType, urgency } = req.query;
+    const filters = {};
+    
+    if (status && status !== "all") filters.status = status;
+    if (bloodType && bloodType !== "all") filters.bloodType = bloodType;
+    if (urgency && urgency !== "all") filters.urgency = urgency;
+    
+    const requests = await BloodRequest.find(filters)
+      .populate("requestedBy", "fullName email phone bloodType")
+      .sort({ createdAt: -1 });
+    
+    res.json({ requests });
+  } catch (error) {
+    console.error("Error fetching blood requests:", error);
+    res.status(500).json({ message: "Error fetching blood requests", error: error.message });
+  }
+});
+
+// Update blood request status
+router.patch("/blood-requests/:id/status", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    
+    const validStatuses = ["pending", "approved", "fulfilled", "rejected"];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ message: "Invalid status" });
+    }
+    
+    const request = await BloodRequest.findByIdAndUpdate(
+      id,
+      { status, updatedAt: Date.now() },
+      { new: true }
+    ).populate("requestedBy", "fullName email phone bloodType");
+    
+    if (!request) {
+      return res.status(404).json({ message: "Blood request not found" });
+    }
+    
+    res.json({ message: "Blood request status updated successfully", request });
+  } catch (error) {
+    console.error("Error updating blood request:", error);
+    res.status(500).json({ message: "Error updating blood request", error: error.message });
+  }
+});
+
+// Get all blood purchases (admin)
+router.get("/purchases", adminAuth, async (req, res) => {
+  try {
+    const {
+      status,
+      sourceType,
+      bloodType,
+      startDate,
+      endDate,
+      page = 1,
+      limit = 20,
+    } = req.query;
+
+    const query = {};
+
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    if (sourceType && sourceType !== "all") {
+      query.sourceType = sourceType;
+    }
+
+    if (bloodType && bloodType !== "all") {
+      query.bloodType = bloodType;
+    }
+
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) {
+        query.createdAt.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.createdAt.$lte = new Date(endDate);
+      }
+    }
+
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const purchases = await BloodPurchase.find(query)
+      .populate("purchasedBy", "fullName email phone")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await BloodPurchase.countDocuments(query);
+
+    res.json({
+      purchases,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Admin purchases fetch error:", error);
+    res.status(500).json({
+      message: "Error fetching purchases",
+      error: error.message,
+    });
+  }
+});
+
+// Update purchase status (admin)
+router.patch("/purchases/:id/status", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes, pickupDetails } = req.body;
+
+    const updateData = {
+      status,
+      ...(adminNotes && { adminNotes }),
+      ...(pickupDetails && { pickupDetails }),
+      $push: {
+        statusHistory: {
+          status,
+          timestamp: new Date(),
+          updatedBy: req.userId,
+          notes: adminNotes,
+        },
+      },
+    };
+
+    const purchase = await BloodPurchase.findByIdAndUpdate(id, updateData, {
+      new: true,
+    }).populate("purchasedBy", "fullName email phone");
+
+    if (!purchase) {
+      return res.status(404).json({ message: "Purchase not found" });
+    }
+
+    res.json({
+      message: "Purchase status updated successfully",
+      purchase,
+    });
+  } catch (error) {
+    console.error("Purchase status update error:", error);
+    res.status(500).json({
+      message: "Error updating purchase status",
+      error: error.message,
+    });
   }
 });
 

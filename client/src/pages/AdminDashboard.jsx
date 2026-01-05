@@ -9,11 +9,9 @@ const AdminDashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    
-    // Check if user is admin
-    if (user.role !== "admin") {
-      navigate("/");
+    const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
+    if (!isAdminLoggedIn || isAdminLoggedIn !== "true") {
+      navigate("/admin");
       return;
     }
 
@@ -22,21 +20,33 @@ const AdminDashboard = () => {
 
   const fetchStats = async () => {
     try {
-      const token = localStorage.getItem("token");
+      const adminToken = localStorage.getItem("adminToken");
+      
+      if (!adminToken) {
+        localStorage.removeItem("isAdminLoggedIn");
+        localStorage.removeItem("adminUser");
+        navigate("/admin");
+        return;
+      }
+      
       const response = await axios.get("/admin/dashboard/stats", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       setStats(response.data);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching stats:", error);
+      
+      if (error.response?.status === 401) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUser");
+        localStorage.removeItem("isAdminLoggedIn");
+        navigate("/admin");
+        return;
+      }
+      
       setError(error.response?.data?.message || "Failed to load dashboard");
       setLoading(false);
-      
-      // If unauthorized, redirect to home
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        navigate("/");
-      }
     }
   };
 

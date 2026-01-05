@@ -103,7 +103,7 @@ router.post("/", auth, async (req, res) => {
       contactName,
       contactPhone,
       requiredDate,
-      requestedBy: req.user._id,
+      requestedBy: req.userId,
       status: "pending",
     });
 
@@ -192,7 +192,7 @@ router.get("/", async (req, res) => {
 router.get("/my-requests", auth, async (req, res) => {
   try {
     const requests = await BloodRequest.find({
-      requestedBy: req.user._id,
+      requestedBy: req.userId,
     }).sort({ createdAt: -1 });
     res.json(requests);
   } catch (error) {

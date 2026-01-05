@@ -15,7 +15,7 @@ const PendingHospitals = () => {
 
   const fetchPendingHospitals = async () => {
     try {
-      const response = await axios.get('/api/admin/hospitals/pending');
+      const response = await axios.get('/admin/hospitals/pending');
       setHospitals(response.data);
       setError('');
     } catch (err) {
@@ -29,7 +29,7 @@ const PendingHospitals = () => {
   const handleApprove = async (id) => {
     setActionLoading(id);
     try {
-      await axios.patch(`/api/admin/hospitals/${id}/approve`);
+      await axios.patch(`/admin/hospitals/${id}/approve`);
       setHospitals(hospitals.filter(hosp => hosp._id !== id));
       alert('Hospital approved successfully!');
     } catch (err) {
@@ -47,7 +47,7 @@ const PendingHospitals = () => {
 
     setActionLoading(id);
     try {
-      await axios.patch(`/api/admin/hospitals/${id}/reject`, {
+      await axios.patch(`/admin/hospitals/${id}/reject`, {
         reason: rejectionReason
       });
       setHospitals(hospitals.filter(hosp => hosp._id !== id));

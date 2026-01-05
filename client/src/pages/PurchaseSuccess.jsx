@@ -117,6 +117,22 @@ const PurchaseSuccess = () => {
                       {purchase.urgency.toUpperCase()}
                     </span>
                   </div>
+                  {purchase.paymentMethod && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Payment Method:</span>
+                      <span className="font-semibold text-gray-900 capitalize">
+                        {purchase.paymentMethod === "cash" ? "Cash on Delivery" : purchase.paymentMethod}
+                      </span>
+                    </div>
+                  )}
+                  {purchase.shippingDetails?.deliveryAddress && (
+                    <div className="flex justify-between items-start">
+                      <span className="text-gray-600">Delivery Address:</span>
+                      <span className="font-semibold text-gray-900 text-right max-w-xs">
+                        {purchase.shippingDetails.deliveryAddress}
+                      </span>
+                    </div>
+                  )}
                   <div className="flex justify-between items-center border-t pt-3 mt-3">
                     <span className="text-gray-900 font-semibold text-lg">
                       Total Cost:

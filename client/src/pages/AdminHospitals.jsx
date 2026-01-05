@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../utils/axios";
+import { hospitalsData } from "../utils/hospitalsData";
 
 const AdminHospitals = () => {
   const [hospitals, setHospitals] = useState([]);
@@ -15,7 +16,6 @@ const AdminHospitals = () => {
     address: "",
     phone: "",
     email: "",
-    password: "",
     website: "",
     bloodInventory: {
       "A+": 0, "A-": 0, "B+": 0, "B-": 0,
@@ -43,13 +43,18 @@ const AdminHospitals = () => {
   const fetchHospitals = async () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
-      const response = await axios.get("/api/admin/hospitals", {
+      const response = await axios.get("/admin/hospitals", {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      setHospitals(response.data.hospitals);
+      const dbHospitals = response.data.hospitals || [];
+      // Merge demo data with database data
+      const mergedHospitals = [...hospitalsData, ...dbHospitals];
+      setHospitals(mergedHospitals);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching hospitals:", error);
+      // Show demo data even if API fails
+      setHospitals(hospitalsData);
       setLoading(false);
     }
   };
@@ -64,7 +69,6 @@ const AdminHospitals = () => {
       address: "",
       phone: "",
       email: "",
-      password: "",
       website: "",
       bloodInventory: {
         "A+": 0, "A-": 0, "B+": 0, "B-": 0,
@@ -92,7 +96,7 @@ const AdminHospitals = () => {
 
     try {
       const adminToken = localStorage.getItem("adminToken");
-      await axios.delete(`/api/admin/hospitals/${id}`, {
+      await axios.delete(`/admin/hospitals/${id}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       fetchHospitals();
@@ -108,19 +112,15 @@ const AdminHospitals = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       
-      // Prepare data - remove password if empty during edit
       const submitData = { ...formData };
-      if (editingHospital && !submitData.password) {
-        delete submitData.password;
-      }
       
       if (editingHospital) {
-        await axios.patch(`/api/admin/hospitals/${editingHospital._id}`, submitData, {
+        await axios.patch(`/admin/hospitals/${editingHospital._id}`, submitData, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Hospital updated successfully!");
       } else {
-        await axios.post("/api/admin/hospitals", submitData, {
+        await axios.post("/admin/hospitals", submitData, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Hospital created successfully!");
@@ -134,6 +134,7 @@ const AdminHospitals = () => {
   };
 
   const calculateTotal = (pricing) => {
+    if (!pricing) return 0;
     return (
       (pricing.bloodPrice || 0) +
       (pricing.processingFee || 0) +
@@ -385,19 +386,6 @@ const AdminHospitals = () => {
                     placeholder="hospital@example.com"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Password (Optional)
-                  </label>
-                  <input
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="Leave blank for default password"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">Default: hospital123 (if hospital needs to login later)</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Website</label>

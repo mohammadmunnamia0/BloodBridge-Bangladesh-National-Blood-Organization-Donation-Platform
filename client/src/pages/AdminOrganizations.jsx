@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../utils/axios";
+import { organizationsData } from "../utils/organizationsData";
 
 const AdminOrganizations = () => {
   const [organizations, setOrganizations] = useState([]);
@@ -45,13 +46,20 @@ const AdminOrganizations = () => {
   const fetchOrganizations = async () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
-      const response = await axios.get("/api/admin/organizations", {
+      const response = await axios.get("/admin/organizations", {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      setOrganizations(response.data.organizations);
+      const dbOrganizations = response.data.organizations || [];
+      // Merge all demo data with database data
+      const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+      const mergedOrganizations = [...allDemoOrgs, ...dbOrganizations];
+      setOrganizations(mergedOrganizations);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching organizations:", error);
+      // Show demo data even if API fails
+      const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+      setOrganizations(allDemoOrgs);
       setLoading(false);
     }
   };
@@ -90,7 +98,7 @@ const AdminOrganizations = () => {
 
     try {
       const adminToken = localStorage.getItem("adminToken");
-      await axios.delete(`/api/admin/organizations/${id}`, {
+      await axios.delete(`/admin/organizations/${id}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       fetchOrganizations();
@@ -106,12 +114,12 @@ const AdminOrganizations = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       if (editingOrg) {
-        await axios.patch(`/api/admin/organizations/${editingOrg._id}`, formData, {
+        await axios.patch(`/admin/organizations/${editingOrg._id}`, formData, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Organization updated successfully!");
       } else {
-        await axios.post("/api/admin/organizations", formData, {
+        await axios.post("/admin/organizations", formData, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Organization created successfully!");
@@ -125,6 +133,7 @@ const AdminOrganizations = () => {
   };
 
   const calculateTotal = (pricing) => {
+    if (!pricing) return 0;
     return (
       (pricing.bloodPrice || 0) +
       (pricing.processingFee || 0) +

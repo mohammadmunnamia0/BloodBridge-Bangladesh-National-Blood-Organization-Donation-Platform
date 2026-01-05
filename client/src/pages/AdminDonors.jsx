@@ -30,11 +30,12 @@ const AdminDonors = () => {
       const response = await axios.get(`/api/admin/donors?${params.toString()}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      setDonors(response.data.donors);
-      setPagination(response.data.pagination);
+      setDonors(response.data.donors || []);
+      setPagination(response.data.pagination || { page: 1, total: 0, pages: 0 });
       setLoading(false);
     } catch (error) {
       console.error("Error fetching donors:", error);
+      setDonors([]);
       setLoading(false);
     }
   };

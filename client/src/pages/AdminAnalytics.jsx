@@ -5,12 +5,13 @@ import axios from "../utils/axios";
 const AdminAnalytics = () => {
   const [analytics, setAnalytics] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const navigate = useNavigate();
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user") || "{}");
-    if (user.role !== "admin") {
-      navigate("/");
+    const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
+    if (!isAdminLoggedIn || isAdminLoggedIn !== "true") {
+      navigate("/admin");
       return;
     }
     fetchAnalytics();
@@ -18,14 +19,33 @@ const AdminAnalytics = () => {
 
   const fetchAnalytics = async () => {
     try {
-      const token = localStorage.getItem("token");
+      setError(null);
+      const adminToken = localStorage.getItem("adminToken");
+      
+      if (!adminToken) {
+        localStorage.removeItem("isAdminLoggedIn");
+        localStorage.removeItem("adminUser");
+        navigate("/admin");
+        return;
+      }
+      
       const response = await axios.get("/admin/analytics", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${adminToken}` },
       });
       setAnalytics(response.data);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching analytics:", error);
+      
+      if (error.response?.status === 401) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUser");
+        localStorage.removeItem("isAdminLoggedIn");
+        navigate("/admin");
+        return;
+      }
+      
+      setError(error.response?.data?.message || error.message || "Failed to load analytics");
       setLoading(false);
     }
   };
@@ -34,6 +54,37 @@ const AdminAnalytics = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Analytics</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  fetchAnalytics();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => navigate("/admin/dashboard")}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }

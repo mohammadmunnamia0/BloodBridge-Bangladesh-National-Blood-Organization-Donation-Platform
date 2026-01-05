@@ -25,6 +25,21 @@ router.post("/register", async (req, res) => {
       password,
     } = req.body;
 
+    // Validate required fields
+    if (!fullName || !email || !phone || !dateOfBirth || !gender || !address || !city || !state || !zipCode || !bloodType || !weight || !password) {
+      return res.status(400).json({ message: "All required fields must be filled" });
+    }
+
+    // Validate password length
+    if (password.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long" });
+    }
+
+    // Validate weight
+    if (weight < 45) {
+      return res.status(400).json({ message: "Weight must be at least 45 kg" });
+    }
+
     // Check if user already exists
     let user = await User.findOne({ email });
     if (user) {
@@ -68,8 +83,20 @@ router.post("/register", async (req, res) => {
       },
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error("Registration error:", error);
+    
+    // Handle mongoose validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({ message: messages.join(', ') });
+    }
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      return res.status(400).json({ message: "A user with this email already exists" });
+    }
+    
+    res.status(500).json({ message: "Server error during registration. Please try again." });
   }
 });
 

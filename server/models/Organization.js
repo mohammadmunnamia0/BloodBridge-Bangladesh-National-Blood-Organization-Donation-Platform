@@ -54,6 +54,10 @@ const organizationSchema = new mongoose.Schema({
     required: true,
     trim: true,
   },
+  location: {
+    type: String,
+    trim: true,
+  },
   bloodInventory: {
     "A+": { type: Number, default: 0 },
     "A-": { type: Number, default: 0 },
@@ -65,10 +69,12 @@ const organizationSchema = new mongoose.Schema({
     "O-": { type: Number, default: 0 },
   },
   pricing: {
-    bloodPrice: { type: Number, required: true },
-    processingFee: { type: Number, required: true },
-    screeningFee: { type: Number, required: true },
-    serviceCharge: { type: Number, required: true },
+    bloodPrice: { type: Number, default: 0 },
+    processingFee: { type: Number, default: 0 },
+    screeningFee: { type: Number, default: 0 },
+    serviceCharge: { type: Number, default: 0 },
+    deliveryCharge: { type: Number, default: 0 },
+    handlingFee: { type: Number, default: 0 },
   },
   icon: {
     type: String,

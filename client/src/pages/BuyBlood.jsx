@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "../utils/axios";
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { hospitals } from "../Utlity/hospitals";
@@ -16,6 +16,11 @@ const BuyBlood = () => {
   const [showSearchResults, setShowSearchResults] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   
+  // Data from database
+  const [dbOrganizations, setDbOrganizations] = useState([]);
+  const [dbHospitals, setDbHospitals] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  
   // Form state
   const [patientName, setPatientName] = useState("");
   const [patientAge, setPatientAge] = useState("");
@@ -26,6 +31,8 @@ const BuyBlood = () => {
   const [urgency, setUrgency] = useState("normal");
   const [requiredDate, setRequiredDate] = useState("");
   const [userNotes, setUserNotes] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cod");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -33,6 +40,35 @@ const BuyBlood = () => {
   const [purchaseResponse, setPurchaseResponse] = useState(null);
 
   const bloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+
+  // Fetch organizations and hospitals from database
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setDataLoading(true);
+        const [orgsResponse, hospsResponse] = await Promise.all([
+          axios.get("/public/organizations"),
+          axios.get("/public/hospitals")
+        ]);
+        
+        // Ensure we always have arrays
+        const orgs = Array.isArray(orgsResponse.data) ? orgsResponse.data : [];
+        const hosps = Array.isArray(hospsResponse.data) ? hospsResponse.data : [];
+        
+        setDbOrganizations(orgs);
+        setDbHospitals(hosps);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        // If API fails, ensure arrays are set
+        setDbOrganizations([]);
+        setDbHospitals([]);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   // Handle pre-selected source and blood type from navigation state
   useEffect(() => {
@@ -57,24 +93,46 @@ const BuyBlood = () => {
     }
   }, [location.state]);
 
-  // Get all sources based on active tab
+  // Get all sources based on active tab (merge static data with database data)
   const getAllSources = () => {
+    // Ensure dbOrganizations and dbHospitals are arrays
+    const dbOrgs = Array.isArray(dbOrganizations) ? dbOrganizations : [];
+    const dbHosps = Array.isArray(dbHospitals) ? dbHospitals : [];
+    
+    let result = [];
+    
     if (activeTab === "all") {
-      return [
+      result = [
         ...organizationsData.national.map(org => ({ ...org, sourceType: "organization" })),
         ...organizationsData.hospital.map(org => ({ ...org, sourceType: "organization" })),
         ...organizationsData.digital.map(org => ({ ...org, sourceType: "organization" })),
+        ...dbOrgs.map(org => ({ ...org, sourceType: "organization" })),
         ...hospitals.map(h => ({ ...h, sourceType: "hospital" })),
+        ...dbHosps.map(h => ({ ...h, sourceType: "hospital" })),
       ];
     } else if (activeTab === "organizations") {
-      return [
+      result = [
         ...organizationsData.national.map(org => ({ ...org, sourceType: "organization" })),
         ...organizationsData.hospital.map(org => ({ ...org, sourceType: "organization" })),
         ...organizationsData.digital.map(org => ({ ...org, sourceType: "organization" })),
+        ...dbOrgs.map(org => ({ ...org, sourceType: "organization" })),
       ];
     } else {
-      return hospitals.map(h => ({ ...h, sourceType: "hospital" }));
+      result = [
+        ...hospitals.map(h => ({ ...h, sourceType: "hospital" })),
+        ...dbHosps.map(h => ({ ...h, sourceType: "hospital" })),
+      ];
     }
+    
+    console.log(`getAllSources (activeTab: ${activeTab}):`, {
+      total: result.length,
+      organizations: result.filter(s => s.sourceType === "organization").length,
+      hospitals: result.filter(s => s.sourceType === "hospital").length,
+      dbOrgs: dbOrgs.length,
+      dbHosps: dbHosps.length
+    });
+    
+    return result;
   };
 
   const sources = getAllSources();
@@ -122,8 +180,16 @@ const BuyBlood = () => {
   const calculateTotal = () => {
     if (!selectedSource || !selectedSource.pricing) return 0;
     
-    const { bloodPrice, processingFee, screeningFee, serviceCharge } = selectedSource.pricing;
-    return (bloodPrice * units) + processingFee + screeningFee + serviceCharge;
+    const pricing = selectedSource.pricing;
+    const bloodPrice = Number(pricing.bloodPrice) || 0;
+    const processingFee = Number(pricing.processingFee) || 0;
+    const screeningFee = Number(pricing.screeningFee) || 0;
+    const serviceCharge = Number(pricing.serviceCharge) || 0;
+    const deliveryCharge = Number(pricing.deliveryCharge) || 0;
+    const handlingFee = Number(pricing.handlingFee) || 0;
+    
+    const total = (bloodPrice * units) + processingFee + screeningFee + serviceCharge + deliveryCharge + handlingFee;
+    return total;
   };
 
   // Generate expiry date (35-42 days from today)
@@ -203,15 +269,11 @@ const BuyBlood = () => {
       const purchaseData = {
         sourceType: selectedSource.type === "hospital" ? "hospital" : "organization",
         sourceName: selectedSource.name,
-        sourceId: selectedSource.id,
+        sourceId: selectedSource._id || selectedSource.id,
         bloodType: selectedBloodType,
         units: Number(units),
         pricing: {
-          bloodPrice: selectedSource.pricing.bloodPrice,
-          processingFee: selectedSource.pricing.processingFee,
-          screeningFee: selectedSource.pricing.screeningFee,
-          serviceCharge: selectedSource.pricing.serviceCharge,
-          additionalFees: selectedSource.pricing.additionalFees || {},
+          ...selectedSource.pricing,
           totalCost,
         },
         patientName,
@@ -223,16 +285,13 @@ const BuyBlood = () => {
         urgency,
         requiredDate,
         userNotes,
+        deliveryAddress,
+        paymentMethod,
       };
 
       const response = await axios.post(
-        "/api/blood-purchases",
-        purchaseData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        "/blood-purchases",
+        purchaseData
       );
 
       console.log("Purchase response:", response.data);
@@ -249,13 +308,20 @@ const BuyBlood = () => {
     } catch (err) {
       console.error("Purchase error:", err);
       console.error("Error response:", err.response);
+      console.error("Error data:", err.response?.data);
+      console.error("Error status:", err.response?.status);
+      console.error("Error message:", err.message);
       
       // Check if it's an authentication error
       if (err.response?.status === 401 || err.response?.status === 403) {
         setError("Session expired. Please login again.");
         setTimeout(() => navigate("/login"), 2000);
+      } else if (err.response?.data?.message) {
+        setError(err.response.data.message);
+      } else if (err.message) {
+        setError(`Error: ${err.message}`);
       } else {
-        setError(err.response?.data?.message || "Failed to submit purchase request");
+        setError("Failed to submit purchase request. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -486,23 +552,120 @@ const BuyBlood = () => {
               </div>
             ) : (
               !selectedSource && (
-                <div className="text-center py-12">
-                  <svg
-                    className="w-20 h-20 mx-auto text-gray-300 mb-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                    />
-                  </svg>
-                  <p className="text-gray-500 text-lg">
-                    Select a blood type and click Search to find available sources
-                  </p>
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      All Available Sources ({sources.length})
+                    </h2>
+                    <div className="text-sm text-gray-600">
+                      {sources.filter(s => s.sourceType === "organization").length} Organizations • {sources.filter(s => s.sourceType === "hospital").length} Hospitals
+                    </div>
+                  </div>
+
+                  {dataLoading ? (
+                    <div className="text-center py-12">
+                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto"></div>
+                      <p className="text-gray-500 mt-4">Loading sources...</p>
+                    </div>
+                  ) : sources.length === 0 ? (
+                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
+                      <p className="text-yellow-800 font-medium">
+                        No sources available at the moment.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                      {sources.map((source) => (
+                        <div
+                          key={source.id}
+                          className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
+                        >
+                          <div className="p-6">
+                            <div className="flex items-start justify-between mb-4">
+                              <div>
+                                <span className="text-3xl mb-2 block">
+                                  {source.icon}
+                                </span>
+                                <h3 className="text-lg font-bold text-gray-900 mb-1">
+                                  {source.name}
+                                </h3>
+                                <span
+                                  className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
+                                    source.sourceType === "hospital"
+                                      ? "bg-blue-100 text-blue-800"
+                                      : "bg-purple-100 text-purple-800"
+                                  }`}
+                                >
+                                  {source.sourceType === "hospital"
+                                    ? "Hospital"
+                                    : "Organization"}
+                                </span>
+                              </div>
+                            </div>
+
+                            <div className="space-y-3 mb-4">
+                              <div className="border-t pt-3">
+                                <div className="text-sm font-semibold text-gray-700 mb-2">
+                                  Blood Inventory:
+                                </div>
+                                <div className="grid grid-cols-4 gap-2">
+                                  {bloodTypes.map((type) => (
+                                    <div
+                                      key={type}
+                                      className={`text-center p-2 rounded ${
+                                        source.bloodInventory?.[type] > 0
+                                          ? "bg-green-50 text-green-700 border border-green-200"
+                                          : "bg-gray-50 text-gray-400 border border-gray-200"
+                                      }`}
+                                    >
+                                      <div className="text-xs font-bold">{type}</div>
+                                      <div className="text-xs">
+                                        {source.bloodInventory?.[type] || 0}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+
+                              {source.pricing && (
+                                <div className="border-t pt-3">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <span className="text-sm text-gray-600">
+                                      Blood Price:
+                                    </span>
+                                    <span className="text-gray-800 font-semibold">
+                                      ৳{source.pricing.bloodPrice}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center">
+                                    <span className="text-sm text-gray-600">
+                                      Total Fees:
+                                    </span>
+                                    <span className="text-gray-800 font-semibold">
+                                      ৳{source.pricing.processingFee + source.pricing.screeningFee + source.pricing.serviceCharge}
+                                    </span>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            <button
+                              onClick={() => handleSelectSource(source)}
+                              className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors duration-200 font-semibold"
+                            >
+                              Select Source
+                            </button>
+
+                            {source.contact && (
+                              <p className="text-xs text-gray-500 mt-3 text-center">
+                                Contact: {source.contact}
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )
             )}
@@ -767,8 +930,28 @@ const BuyBlood = () => {
                 </div>
               </div>
 
-              {/* Urgency and Date */}
-              <div className="grid md:grid-cols-2 gap-4">
+              {/* Delivery Address */}
+              <div>
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                  Delivery Information
+                </h3>
+                <div className="mb-4">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Delivery Address *
+                  </label>
+                  <textarea
+                    value={deliveryAddress}
+                    onChange={(e) => setDeliveryAddress(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    rows="3"
+                    placeholder="Enter complete delivery address with area, city, and postal code"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Urgency, Date, and Payment */}
+              <div className="grid md:grid-cols-3 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Urgency Level *
@@ -796,6 +979,23 @@ const BuyBlood = () => {
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     required
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Payment Method *
+                  </label>
+                  <select
+                    value={paymentMethod}
+                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+                    required
+                  >
+                    <option value="cod">Cash on Delivery</option>
+                    <option value="bkash">bKash</option>
+                    <option value="ssl">SSL E-commerce</option>
+                    <option value="nagad">Nagad</option>
+                    <option value="rocket">Rocket</option>
+                  </select>
                 </div>
               </div>
 

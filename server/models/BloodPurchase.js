@@ -29,7 +29,7 @@ const bloodPurchaseSchema = new mongoose.Schema(
     },
     
     sourceId: {
-      type: Number,
+      type: String,
       required: true,
     },
     
@@ -53,19 +53,27 @@ const bloodPurchaseSchema = new mongoose.Schema(
     pricing: {
       bloodPrice: {
         type: Number,
-        required: true,
+        default: 0,
       },
       processingFee: {
         type: Number,
-        required: true,
+        default: 0,
       },
       screeningFee: {
         type: Number,
-        required: true,
+        default: 0,
       },
       serviceCharge: {
         type: Number,
-        required: true,
+        default: 0,
+      },
+      deliveryCharge: {
+        type: Number,
+        default: 0,
+      },
+      handlingFee: {
+        type: Number,
+        default: 0,
       },
       additionalFees: {
         type: Object,
@@ -160,7 +168,8 @@ const bloodPurchaseSchema = new mongoose.Schema(
     
     paymentMethod: {
       type: String,
-      enum: ["cash", "bKash", "nagad", "card", "online"],
+      enum: ["cash", "cod", "bkash", "nagad", "rocket", "card", "bank", "ssl"],
+      default: "cash",
     },
     
     // Notes and tracking

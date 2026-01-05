@@ -20,6 +20,8 @@ const seedAdmins = async () => {
     // Create multiple organizations
     const redCrescent = await Organization.create({
       name: "Bangladesh Red Crescent Society",
+      password: "org@123",
+      status: "approved",
       category: "national",
       email: "info@bdrcs.org",
       phone: "+880-2-9330188",
@@ -46,6 +48,8 @@ const seedAdmins = async () => {
 
     const quantumFoundation = await Organization.create({
       name: "Quantum Foundation",
+      password: "org@123",
+      status: "approved",
       category: "national",
       email: "info@quantumfoundation.org",
       phone: "+880-2-8189091",
@@ -72,6 +76,8 @@ const seedAdmins = async () => {
 
     const sandhaniDhaka = await Organization.create({
       name: "Sandhani Dhaka",
+      password: "org@123",
+      status: "approved",
       category: "national",
       email: "sandhani@du.ac.bd",
       phone: "+880-2-9661900",
@@ -98,6 +104,8 @@ const seedAdmins = async () => {
 
     const evercare = await Hospital.create({
       name: "Evercare Hospital Dhaka",
+      password: "hospital@123",
+      status: "approved",
       email: "info@evercarebd.com",
       phone: "+880-9666710678",
       emergencyHotline: "+880-9666710678",

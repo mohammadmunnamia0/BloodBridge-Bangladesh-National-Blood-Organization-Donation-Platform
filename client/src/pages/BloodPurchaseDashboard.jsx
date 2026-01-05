@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "../utils/axios";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { generateReceipt } from "../utils/generateReceipt";
@@ -12,6 +12,13 @@ const BloodPurchaseDashboard = () => {
 
   useEffect(() => {
     fetchPurchases();
+    
+    // Auto-refresh every 30 seconds to get latest status updates
+    const interval = setInterval(() => {
+      fetchPurchases();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, []);
 
   const fetchPurchases = async () => {
@@ -22,7 +29,7 @@ const BloodPurchaseDashboard = () => {
         return;
       }
 
-      const response = await axios.get("/api/blood-purchases/my-purchases", {
+      const response = await axios.get("/blood-purchases/my-purchases", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -44,7 +51,7 @@ const BloodPurchaseDashboard = () => {
 
     try {
       const token = localStorage.getItem("token");
-      await axios.delete(`/api/blood-purchases/${id}`, {
+      await axios.delete(`/blood-purchases/${id}`, {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -111,12 +118,25 @@ const BloodPurchaseDashboard = () => {
           <h1 className="text-4xl font-bold text-red-600">
             My Blood Purchases
           </h1>
-          <button
-            onClick={() => navigate("/buy-blood")}
-            className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition font-semibold"
-          >
-            + New Purchase
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchPurchases}
+              disabled={loading}
+              className="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition font-semibold flex items-center gap-2"
+              title="Refresh purchases"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate("/buy-blood")}
+              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition font-semibold"
+            >
+              + New Purchase
+            </button>
+          </div>
         </div>
 
         {error && (

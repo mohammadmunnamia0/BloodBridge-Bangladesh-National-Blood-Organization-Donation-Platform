@@ -1,8 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../utils/axios";
-import PendingOrganizations from "../Components/PendingOrganizations";
-import PendingHospitals from "../Components/PendingHospitals";
 
 const UnifiedAdminDashboard = () => {
   const navigate = useNavigate();
@@ -60,7 +58,7 @@ const UnifiedAdminDashboard = () => {
 
   const loadStatsFromAPI = async (token) => {
     try {
-      const response = await axios.get("/api/admin/dashboard/stats", {
+      const response = await axios.get("/admin/dashboard/stats", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -187,71 +185,6 @@ const UnifiedAdminDashboard = () => {
             </div>
             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
               <span className="text-2xl">👥</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Donors</p>
-              <p className="text-3xl font-bold text-red-600">{stats.totalDonors || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Registered donors</p>
-            </div>
-            <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">🩸</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Blood Requests</p>
-              <p className="text-3xl font-bold text-purple-600">{stats.totalBloodRequests || 0}</p>
-              <p className="text-xs text-yellow-600 mt-1">{stats.pendingBloodRequests || 0} pending</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">📋</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Purchases</p>
-              <p className="text-3xl font-bold text-indigo-600">{stats.totalPurchases || 0}</p>
-              <p className="text-xs text-orange-600 mt-1">{stats.pendingPurchases || 0} pending</p>
-            </div>
-            <div className="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">📦</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Completed Orders</p>
-              <p className="text-3xl font-bold text-green-600">{stats.completedPurchases || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">{stats.inProgressPurchases || 0} in progress</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">✅</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Total Revenue</p>
-              <p className="text-2xl font-bold text-green-600">{stats.totalRevenue || '৳0'}</p>
-              <p className="text-xs text-gray-500 mt-1">{stats.monthlyRevenue || '৳0'} this month</p>
-            </div>
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
-              <span className="text-2xl">💰</span>
             </div>
           </div>
         </div>
@@ -441,16 +374,6 @@ const UnifiedAdminDashboard = () => {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Pending Organizations Section */}
-        <div className="mt-8">
-          <PendingOrganizations />
-        </div>
-
-        {/* Pending Hospitals Section */}
-        <div className="mt-8">
-          <PendingHospitals />
         </div>
       </div>
     </div>

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon index.js",
-    "seed:demo": "node seedDemoData.js"
+    "seed:demo": "node seedDemoData.js",
+    "seed:requests": "node seedBloodRequests.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.2",

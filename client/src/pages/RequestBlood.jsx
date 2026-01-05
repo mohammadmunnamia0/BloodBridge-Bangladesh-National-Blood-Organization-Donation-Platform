@@ -1,4 +1,4 @@
-import axios from "axios";
+import axios from "../utils/axios";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -26,8 +26,10 @@ const RequestBlood = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) {
-        setError("Please login to submit a blood request");
-        navigate("/login");
+        setError("You need to be logged in to request blood. Please login with your existing account or register if you're new.");
+        setTimeout(() => {
+          navigate("/login");
+        }, 3000);
         return;
       }
 
@@ -85,26 +87,17 @@ const RequestBlood = () => {
         return;
       }
 
-      const response = await axios.post(
-        "/api/blood-requests",
-        {
-          patientName,
-          bloodType,
-          units: unitsNum,
-          hospital,
-          reason,
-          urgency,
-          contactName,
-          contactPhone,
-          requiredDate,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        }
-      );
+      const response = await axios.post("/blood-requests", {
+        patientName,
+        bloodType,
+        units: unitsNum,
+        hospital,
+        reason,
+        urgency,
+        contactName,
+        contactPhone,
+        requiredDate,
+      });
 
       setSuccess("Blood request submitted successfully!");
       // Reset form
@@ -154,7 +147,10 @@ const RequestBlood = () => {
           <div className="text-center mb-8">
             <h2 className="text-3xl font-bold text-gray-900">Request Blood</h2>
             <p className="mt-2 text-sm text-gray-600">
-              Fill out the form below to request blood
+              Already registered? Just fill out this form to request blood
+            </p>
+            <p className="mt-1 text-xs text-gray-500">
+              (You only need to register once. After login, you can request blood anytime)
             </p>
           </div>
 

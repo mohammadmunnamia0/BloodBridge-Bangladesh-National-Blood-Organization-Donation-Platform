@@ -90,9 +90,10 @@ const PriceComparison = () => {
 
   // Calculate total cost per unit
   const calculateTotalCost = (source) => {
-    const { bloodPrice, processingFee, screeningFee, serviceCharge } =
+    if (!source.pricing) return 0;
+    const { bloodPrice = 0, processingFee = 0, screeningFee = 0, serviceCharge = 0 } =
       source.pricing;
-    return bloodPrice + processingFee + screeningFee + serviceCharge;
+    return (bloodPrice || 0) + (processingFee || 0) + (screeningFee || 0) + (serviceCharge || 0);
   };
 
   // Sort sources by total cost
@@ -100,10 +101,11 @@ const PriceComparison = () => {
     (a, b) => calculateTotalCost(a) - calculateTotalCost(b)
   );
 
-  // Get min and max prices
-  const prices = sortedSources.map((s) => calculateTotalCost(s));
-  const minPrice = Math.min(...prices);
-  const maxPrice = Math.max(...prices);
+  // Get min and max prices - filter out zero prices
+  const prices = sortedSources.map((s) => calculateTotalCost(s)).filter(p => p > 0);
+  const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
+  const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
+  const avgPrice = prices.length > 0 ? Math.round(prices.reduce((a, b) => a + b, 0) / prices.length) : 0;
 
   return (
     <div className="min-h-screen bg-gray-50 py-12">
@@ -204,7 +206,7 @@ const PriceComparison = () => {
               Average Price
             </p>
             <p className="text-2xl font-bold text-blue-600">
-              ৳{Math.round(prices.reduce((a, b) => a + b, 0) / prices.length)}
+              ৳{avgPrice}
             </p>
           </div>
           <div className="bg-red-100 rounded-lg p-4 text-center">

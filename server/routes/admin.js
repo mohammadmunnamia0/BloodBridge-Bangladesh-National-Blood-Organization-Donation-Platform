@@ -671,7 +671,21 @@ router.get("/organizations", adminAuth, async (req, res) => {
 // Create organization
 router.post("/organizations", adminAuth, async (req, res) => {
   try {
-    const organization = new Organization(req.body);
+    // Set default values for admin-created organizations
+    const organizationData = {
+      ...req.body,
+      isActive: true,
+      status: "approved",
+      approvedBy: req.admin._id,
+      approvedAt: new Date(),
+    };
+    
+    // Handle location field - use it as address if address is not provided
+    if (organizationData.location && !organizationData.address) {
+      organizationData.address = organizationData.location;
+    }
+    
+    const organization = new Organization(organizationData);
     await organization.save();
     res.status(201).json({
       message: "Organization created successfully",

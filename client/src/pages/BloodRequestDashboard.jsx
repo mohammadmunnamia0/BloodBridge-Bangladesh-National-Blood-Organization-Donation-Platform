@@ -113,82 +113,69 @@ const BloodRequestDashboard = () => {
   ];
 
   const handleRequestBlood = () => {
-    // Check if user is registered
-    const isRegistered = localStorage.getItem("isAuthenticated") === "true";
+    // Check if user is logged in by checking for token
+    const token = localStorage.getItem("token");
 
-    if (!isRegistered) {
+    if (!token) {
       setShowModal(true);
     } else {
-      navigate("/register-donor");
+      navigate("/request-blood");
+    }
+  };
+
+  const loadRequests = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      // Fetch from API
+      const response = await axios.get("/public/blood-requests");
+      const apiRequests = response.data || [];
+      
+      // Get user requests from localStorage (for user-created requests not yet in DB)
+      const userRequests = JSON.parse(
+        localStorage.getItem("bloodRequests") || "[]"
+      );
+
+      // Combine API requests with user requests
+      const allRequests = [...apiRequests, ...userRequests];
+
+      // Remove duplicates based on _id
+      const uniqueRequests = allRequests.filter((request, index, self) =>
+        index === self.findIndex((r) => r._id === request._id)
+      );
+
+      // Sort by createdAt (newest first)
+      const sortedRequests = uniqueRequests.sort((a, b) => {
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+
+      setRequests(sortedRequests);
+    } catch (error) {
+      console.error("Error loading blood requests:", error);
+      setError("Failed to load blood requests from server");
+      // Fallback to static data
+      setRequests(staticRequests);
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const loadRequests = async () => {
-      try {
-        setLoading(true);
-        setError("");
-
-        // Fetch from API
-        const response = await axios.get("/public/blood-requests");
-        const apiRequests = response.data || [];
-        
-        // Get user requests from localStorage (for user-created requests not yet in DB)
-        const userRequests = JSON.parse(
-          localStorage.getItem("bloodRequests") || "[]"
-        );
-
-        // Combine API requests with user requests
-        const allRequests = [...apiRequests, ...userRequests];
-
-        // Remove duplicates based on _id
-        const uniqueRequests = allRequests.filter((request, index, self) =>
-          index === self.findIndex((r) => r._id === request._id)
-        );
-
-        // Sort by createdAt (newest first)
-        const sortedRequests = uniqueRequests.sort((a, b) => {
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        });
-
-        setRequests(sortedRequests);
-      } catch (error) {
-        console.error("Error loading blood requests:", error);
-        setError("Failed to load blood requests from server");
-        // Fallback to static data
-        setRequests(staticRequests);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadRequests();
 
     // Listen for new blood requests
     const handleStorageChange = (e) => {
       if (e.key === "bloodRequests") {
-        const userRequests = JSON.parse(e.newValue || "[]");
-        // Ensure user requests have isStatic flag set to false
-        const processedUserRequests = userRequests.map((request) => ({
-          ...request,
-          isStatic: false,
-        }));
-        // Combine user requests with static requests
-        const allRequests = [...processedUserRequests, ...staticRequests];
-        // Sort all requests
-        const sortedRequests = allRequests.sort((a, b) => {
-          // Always put non-static (user) requests first
-          if (!a.isStatic && b.isStatic) return -1;
-          if (a.isStatic && !b.isStatic) return 1;
-          // Then sort by date
-          return new Date(b.createdAt) - new Date(a.createdAt);
-        });
-        setRequests(sortedRequests);
+        loadRequests();
       }
     };
 
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+    };
   }, []);
 
   const getStatusColor = (status) => {
@@ -267,6 +254,15 @@ const BloodRequestDashboard = () => {
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Blood Requests</h1>
           <div className="flex gap-4">
+            <button
+              onClick={() => loadRequests()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center gap-2"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+              </svg>
+              Refresh
+            </button>
             <button
               onClick={handleRequestBlood}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors"

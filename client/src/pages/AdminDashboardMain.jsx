@@ -46,13 +46,13 @@ const AdminDashboardMain = () => {
       
       // Fetch new items counts
       const [requestsRes, donorsRes, purchasesRes] = await Promise.all([
-        axios.get("/api/admin/blood-requests?status=pending", {
+        axios.get("/admin/blood-requests?status=pending", {
           headers: { Authorization: `Bearer ${adminToken}` },
         }),
-        axios.get("/api/admin/donors?page=1&limit=100", {
+        axios.get("/admin/donors?page=1&limit=100", {
           headers: { Authorization: `Bearer ${adminToken}` },
         }),
-        axios.get("/api/admin/blood-purchases?status=pending", {
+        axios.get("/admin/blood-purchases?status=pending", {
           headers: { Authorization: `Bearer ${adminToken}` },
         }),
       ]);

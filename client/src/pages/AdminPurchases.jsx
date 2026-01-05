@@ -5,6 +5,7 @@ import axios from "../utils/axios";
 const AdminPurchases = () => {
   const [purchases, setPurchases] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [filter, setFilter] = useState({ status: "all", sourceType: "all", bloodType: "all" });
   const [selectedPurchase, setSelectedPurchase] = useState(null);
   const [showModal, setShowModal] = useState(false);
@@ -25,23 +26,57 @@ const AdminPurchases = () => {
       return;
     }
     fetchPurchases();
+    
+    // Auto-refresh every 30 seconds to show new purchases
+    const interval = setInterval(() => {
+      fetchPurchases();
+    }, 30000);
+    
+    return () => clearInterval(interval);
   }, [navigate, filter]);
 
   const fetchPurchases = async () => {
     try {
+      setError(null);
       const adminToken = localStorage.getItem("adminToken");
+      
+      if (!adminToken) {
+        // If no token, redirect to login instead of showing error
+        localStorage.removeItem("isAdminLoggedIn");
+        localStorage.removeItem("adminUser");
+        navigate("/admin");
+        return;
+      }
+
       const params = new URLSearchParams();
       if (filter.status !== "all") params.append("status", filter.status);
       if (filter.sourceType !== "all") params.append("sourceType", filter.sourceType);
       if (filter.bloodType !== "all") params.append("bloodType", filter.bloodType);
 
-      const response = await axios.get(`/api/admin/purchases?${params.toString()}`, {
+      console.log("Fetching purchases with params:", params.toString());
+      
+      const response = await axios.get(`/admin/purchases?${params.toString()}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      setPurchases(response.data.purchases);
+      
+      console.log("Purchases response:", response.data);
+      setPurchases(response.data.purchases || []);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching purchases:", error);
+      console.error("Error response:", error.response?.data);
+      
+      // If 401, token is invalid - redirect to login
+      if (error.response?.status === 401) {
+        localStorage.removeItem("adminToken");
+        localStorage.removeItem("adminUser");
+        localStorage.removeItem("isAdminLoggedIn");
+        navigate("/admin");
+        return;
+      }
+      
+      setError(error.response?.data?.message || error.message || "Failed to load purchases");
+      setPurchases([]);
       setLoading(false);
     }
   };
@@ -51,9 +86,6 @@ const AdminPurchases = () => {
     setUpdateForm({
       status: purchase.status,
       adminNotes: purchase.adminNotes || "",
-      pickupAddress: purchase.pickupDetails?.address || "",
-      pickupDate: purchase.pickupDetails?.date || "",
-      pickupTime: purchase.pickupDetails?.time || "",
       pickupInstructions: purchase.pickupDetails?.instructions || "",
     });
     setShowModal(true);
@@ -64,14 +96,11 @@ const AdminPurchases = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       await axios.patch(
-        `/api/admin/purchases/${selectedPurchase._id}/status`,
+        `/admin/purchases/${selectedPurchase._id}/status`,
         {
           status: updateForm.status,
           adminNotes: updateForm.adminNotes,
           pickupDetails: {
-            address: updateForm.pickupAddress,
-            date: updateForm.pickupDate,
-            time: updateForm.pickupTime,
             instructions: updateForm.pickupInstructions,
           },
         },
@@ -114,6 +143,37 @@ const AdminPurchases = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="max-w-md w-full mx-4">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-red-800 mb-2">Error Loading Purchases</h2>
+            <p className="text-red-600 mb-4">{error}</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setError(null);
+                  setLoading(true);
+                  fetchPurchases();
+                }}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={() => navigate("/admin/dashboard")}
+                className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+              >
+                Back to Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-7xl mx-auto">
@@ -123,12 +183,25 @@ const AdminPurchases = () => {
             <h1 className="text-3xl font-bold text-gray-800">Manage Purchases</h1>
             <p className="text-gray-600 mt-2">View and manage all blood purchase requests</p>
           </div>
-          <button
-            onClick={() => navigate("/admin")}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-          >
-            Back to Dashboard
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchPurchases}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+              title="Refresh purchases"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate("/admin")}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -295,51 +368,15 @@ const AdminPurchases = () => {
                 />
               </div>
 
-              <div className="border-t pt-4">
-                <h3 className="font-semibold text-gray-800 mb-3">Pickup Details</h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Date</label>
-                    <input
-                      type="date"
-                      value={updateForm.pickupDate}
-                      onChange={(e) => setUpdateForm({ ...updateForm, pickupDate: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Time</label>
-                    <input
-                      type="time"
-                      value={updateForm.pickupTime}
-                      onChange={(e) => setUpdateForm({ ...updateForm, pickupTime: e.target.value })}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                    />
-                  </div>
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Pickup Address</label>
-                  <input
-                    type="text"
-                    value={updateForm.pickupAddress}
-                    onChange={(e) => setUpdateForm({ ...updateForm, pickupAddress: e.target.value })}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                    placeholder="Enter pickup address..."
-                  />
-                </div>
-
-                <div className="mt-4">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
-                  <textarea
-                    value={updateForm.pickupInstructions}
-                    onChange={(e) => setUpdateForm({ ...updateForm, pickupInstructions: e.target.value })}
-                    rows="2"
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                    placeholder="Any special instructions..."
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
+                <textarea
+                  value={updateForm.pickupInstructions}
+                  onChange={(e) => setUpdateForm({ ...updateForm, pickupInstructions: e.target.value })}
+                  rows="3"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  placeholder="Any special instructions..."
+                />
               </div>
 
               <div className="flex justify-end space-x-3 pt-4">

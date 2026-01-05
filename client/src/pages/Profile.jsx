@@ -6,6 +6,7 @@ import { generateReceipt } from "../utils/generateReceipt";
 const Profile = () => {
   const [user, setUser] = useState(null);
   const [purchases, setPurchases] = useState([]);
+  const [bloodRequests, setBloodRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
@@ -15,7 +16,7 @@ const Profile = () => {
     bloodType: "",
     address: "",
   });
-  const [activeTab, setActiveTab] = useState("info"); // info, purchases, shipping
+  const [activeTab, setActiveTab] = useState("info"); // info, purchases, shipping, requests
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -26,22 +27,39 @@ const Profile = () => {
       navigate("/login");
       return;
     }
+    
+    // Load user from localStorage immediately for faster UI
+    const cachedUser = localStorage.getItem("user");
+    if (cachedUser) {
+      try {
+        const userData = JSON.parse(cachedUser);
+        setUser(userData);
+        setEditForm({
+          fullName: userData.fullName || "",
+          email: userData.email || "",
+          phone: userData.phone || "",
+          bloodType: userData.bloodType || "",
+          address: userData.address || "",
+        });
+      } catch (error) {
+        console.error("Error parsing cached user:", error);
+      }
+    }
 
     // Check if tab is specified in location state
     if (location.state?.tab) {
       setActiveTab(location.state.tab);
     }
 
-    // Fetch user profile from database
+    // Fetch fresh data from database
     fetchUserProfile(token);
     fetchPurchases(token);
+    fetchBloodRequests(token);
   }, [navigate, location]);
 
   const fetchUserProfile = async (token) => {
     try {
-      const response = await axios.get("/api/auth/profile", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get("/auth/profile");
       
       const userData = response.data.user;
       setUser(userData);
@@ -55,10 +73,32 @@ const Profile = () => {
       
       // Update localStorage with fresh data
       localStorage.setItem("user", JSON.stringify(userData));
+      // Trigger storage event to update Navbar
+      window.dispatchEvent(new Event("storage"));
     } catch (error) {
       console.error("Error fetching user profile:", error);
-      if (error.response?.status === 401) {
-        // Token expired or invalid
+      
+      // Try to use cached user data from localStorage
+      const cachedUser = localStorage.getItem("user");
+      if (cachedUser) {
+        try {
+          const userData = JSON.parse(cachedUser);
+          setUser(userData);
+          setEditForm({
+            fullName: userData.fullName || "",
+            email: userData.email || "",
+            phone: userData.phone || "",
+            bloodType: userData.bloodType || "",
+            address: userData.address || "",
+          });
+          console.log("Using cached user data");
+        } catch (parseError) {
+          console.error("Error parsing cached user:", parseError);
+        }
+      }
+      
+      // Only redirect to login if it's definitely a 401 and we have no cached data
+      if (error.response?.status === 401 && !cachedUser) {
         localStorage.removeItem("token");
         localStorage.removeItem("user");
         navigate("/login");
@@ -68,9 +108,7 @@ const Profile = () => {
 
   const fetchPurchases = async (token) => {
     try {
-      const response = await axios.get("/api/blood-purchases/my-purchases", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.get("/blood-purchases/my-purchases");
       
       // Handle different response structures
       const purchasesData = Array.isArray(response.data) 
@@ -81,8 +119,25 @@ const Profile = () => {
       setLoading(false);
     } catch (error) {
       console.error("Error fetching purchases:", error);
-      setPurchases([]); // Set empty array on error
+      // Don't redirect on purchase fetch error, just set empty array
+      setPurchases([]);
       setLoading(false);
+    }
+  };
+
+  const fetchBloodRequests = async (token) => {
+    try {
+      const response = await axios.get("/blood-requests/my-requests");
+      
+      const requestsData = Array.isArray(response.data) 
+        ? response.data 
+        : (response.data?.requests || []);
+      
+      setBloodRequests(requestsData);
+    } catch (error) {
+      console.error("Error fetching blood requests:", error);
+      // Don't redirect on blood request fetch error, just set empty array
+      setBloodRequests([]);
     }
   };
 
@@ -102,9 +157,7 @@ const Profile = () => {
     const token = localStorage.getItem("token");
 
     try {
-      const response = await axios.patch("/api/auth/profile", editForm, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await axios.patch("/auth/profile", editForm);
 
       // Update localStorage with new user data
       const updatedUser = response.data.user || response.data;
@@ -201,6 +254,16 @@ const Profile = () => {
                 }`}
               >
                 Purchase History ({purchases.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("requests")}
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors duration-300 ${
+                  activeTab === "requests"
+                    ? "border-red-500 text-red-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Blood Requests ({bloodRequests.length})
               </button>
               <button
                 onClick={() => setActiveTab("shipping")}
@@ -707,6 +770,138 @@ const Profile = () => {
                         )}
                       </div>
                     ))
+                )}
+              </div>
+            )}
+
+            {/* Blood Requests Tab */}
+            {activeTab === "requests" && (
+              <div>
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold text-gray-800">
+                    My Blood Requests
+                  </h3>
+                  <button
+                    onClick={() => navigate("/request-blood")}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                  >
+                    New Request
+                  </button>
+                </div>
+
+                {bloodRequests.length === 0 ? (
+                  <div className="text-center py-12 bg-gray-50 rounded-lg">
+                    <svg
+                      className="mx-auto h-12 w-12 text-gray-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <h3 className="mt-2 text-sm font-medium text-gray-900">
+                      No blood requests
+                    </h3>
+                    <p className="mt-1 text-sm text-gray-500">
+                      You haven't made any blood requests yet.
+                    </p>
+                    <div className="mt-6">
+                      <button
+                        onClick={() => navigate("/request-blood")}
+                        className="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+                      >
+                        Request Blood
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {bloodRequests.map((request) => (
+                      <div
+                        key={request._id}
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition"
+                      >
+                        <div className="flex justify-between items-start mb-3">
+                          <div>
+                            <h4 className="font-semibold text-gray-800 text-lg">
+                              {request.patientName}
+                            </h4>
+                            <p className="text-sm text-gray-500">
+                              {new Date(request.createdAt).toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "short",
+                                day: "numeric",
+                              })}
+                            </p>
+                          </div>
+                          <span
+                            className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                              request.status === "pending"
+                                ? "bg-yellow-100 text-yellow-800"
+                                : request.status === "approved"
+                                ? "bg-blue-100 text-blue-800"
+                                : request.status === "fulfilled"
+                                ? "bg-green-100 text-green-800"
+                                : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                          <div>
+                            <p className="text-gray-500">Blood Type</p>
+                            <p className="font-semibold text-gray-800">{request.bloodType}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Units</p>
+                            <p className="font-semibold text-gray-800">{request.units}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Urgency</p>
+                            <span
+                              className={`inline-block px-2 py-1 rounded text-xs font-semibold ${
+                                request.urgency === "emergency"
+                                  ? "bg-red-500 text-white"
+                                  : request.urgency === "urgent"
+                                  ? "bg-orange-500 text-white"
+                                  : "bg-green-500 text-white"
+                              }`}
+                            >
+                              {request.urgency.charAt(0).toUpperCase() + request.urgency.slice(1)}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Hospital</p>
+                            <p className="font-semibold text-gray-800">{request.hospital}</p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Required Date</p>
+                            <p className="font-semibold text-gray-800">
+                              {new Date(request.requiredDate).toLocaleDateString()}
+                            </p>
+                          </div>
+                          <div>
+                            <p className="text-gray-500">Contact</p>
+                            <p className="font-semibold text-gray-800">{request.contactPhone}</p>
+                          </div>
+                        </div>
+
+                        {request.reason && (
+                          <div className="mt-3 pt-3 border-t border-gray-100">
+                            <p className="text-gray-500 text-sm">Reason</p>
+                            <p className="text-gray-800">{request.reason}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 )}
               </div>
             )}

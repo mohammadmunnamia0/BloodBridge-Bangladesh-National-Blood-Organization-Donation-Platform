@@ -22,19 +22,28 @@ const AdminBloodRequests = () => {
 
   const fetchRequests = async () => {
     try {
+      setLoading(true);
       const adminToken = localStorage.getItem("adminToken");
       const params = new URLSearchParams();
       if (filter.status !== "all") params.append("status", filter.status);
       if (filter.bloodType !== "all") params.append("bloodType", filter.bloodType);
       if (filter.urgency !== "all") params.append("urgency", filter.urgency);
 
-      const response = await axios.get(`/api/admin/blood-requests?${params.toString()}`, {
+      console.log("Fetching admin blood requests with token:", adminToken ? 'present' : 'missing');
+      const response = await axios.get(`/admin/blood-requests?${params.toString()}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      setRequests(response.data.requests);
+      console.log("Blood requests response:", response.data);
+      
+      // Handle both response formats
+      const requestsData = response.data.requests || response.data || [];
+      setRequests(requestsData);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching blood requests:", error);
+      console.error("Error details:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      setRequests([]);
       setLoading(false);
     }
   };
@@ -50,7 +59,7 @@ const AdminBloodRequests = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       await axios.patch(
-        `/api/admin/blood-requests/${selectedRequest._id}/status`,
+        `/admin/blood-requests/${selectedRequest._id}/status`,
         { status: newStatus },
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
@@ -109,12 +118,25 @@ const AdminBloodRequests = () => {
             <h1 className="text-3xl font-bold text-gray-800">Blood Requests</h1>
             <p className="text-gray-600 mt-2">Manage all blood donation requests</p>
           </div>
-          <button
-            onClick={() => navigate("/admin/dashboard")}
-            className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
-          >
-            Back to Dashboard
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={fetchRequests}
+              disabled={loading}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2"
+              title="Refresh requests"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={() => navigate("/admin/dashboard")}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition"
+            >
+              Back to Dashboard
+            </button>
+          </div>
         </div>
 
         {/* Summary Stats */}

@@ -1,4 +1,15 @@
 {
+  "name": "bloodbridge-foundation",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "build:client": "cd client && npm install && npm run build",
+    "build:server": "cd server && npm install",
+    "build": "npm run build:client && npm run build:server",
+    "deploy:preview": "vercel",
+    "deploy:prod": "vercel --prod",
+    "install:all": "npm install && cd client && npm install && cd ../server && npm install && cd .."
+  },
   "dependencies": {
     "jspdf": "^3.0.4"
   }

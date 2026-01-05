@@ -69,15 +69,6 @@ const Hospitals = () => {
             <h1 className="text-4xl font-bold text-gray-800">
               Dhaka Hospitals
             </h1>
-            <button
-              onClick={() => alert('🚧 Under Construction\n\nThis feature is currently under development. Please check back later!')}
-              className="bg-red-600 text-white px-6 py-3 rounded-lg hover:bg-red-700 transition-colors font-medium flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              Register Your Hospital
-            </button>
           </div>
           <p className="text-gray-600 max-w-2xl">
             Find comprehensive information about major hospitals in Dhaka,

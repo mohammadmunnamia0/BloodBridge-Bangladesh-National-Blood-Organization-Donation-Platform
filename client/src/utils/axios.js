@@ -18,10 +18,14 @@ axiosInstance.interceptors.request.use(
     if (config.method === "get") {
       config.params = { ...config.params, _t: Date.now() };
     }
-    // Check for admin token first, then regular user token
+    
+    // Determine which token to use based on the request path
+    // Use admin token only for /admin routes
+    const isAdminRoute = config.url?.includes("/admin");
     const adminToken = localStorage.getItem("adminToken");
     const userToken = localStorage.getItem("token");
-    const token = adminToken || userToken;
+    
+    const token = isAdminRoute ? (adminToken || userToken) : (userToken || adminToken);
     
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -45,30 +49,18 @@ axiosInstance.interceptors.response.use(
       });
     }
 
+    // For 401 errors, just pass them through without auto-logout
+    // Let individual pages handle authentication as needed
     if (error.response.status === 401) {
-      // Check if it's an admin session or regular user session
-      const isAdmin = localStorage.getItem("isAdminLoggedIn") === "true";
-      
-      if (isAdmin) {
-        // Clear admin data and redirect to admin login
-        localStorage.removeItem("adminToken");
-        localStorage.removeItem("adminUser");
-        localStorage.removeItem("isAdminLoggedIn");
-        window.location.href = "/admin";
-      } else {
-        // Clear regular user data and redirect to user login
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
-        window.location.href = "/login";
-      }
-      
       return Promise.reject({
-        message: "Session expired. Please login again.",
+        message: error.response.data?.message || "Authentication required. Please login.",
+        status: 401,
+        isAuthError: true,
       });
     }
 
     return Promise.reject({
-      message: error.response.data.message || "An error occurred",
+      message: error.response.data?.message || "An error occurred",
       status: error.response.status,
     });
   }

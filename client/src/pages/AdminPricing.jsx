@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "../utils/axios";
+import { hospitalsData } from "../utils/hospitalsData";
+import { organizationsData } from "../utils/organizationsData";
 
 const AdminPricing = () => {
   const [sources, setSources] = useState([]);
@@ -27,10 +29,19 @@ const AdminPricing = () => {
       let allSources = [];
 
       if (filter === "all" || filter === "organization") {
-        const orgResponse = await axios.get("/api/admin/organizations", {
+        // Add demo organizations
+        const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const demoOrgs = allDemoOrgs.map((org) => ({
+          ...org,
+          sourceType: "organization",
+        }));
+        allSources = [...allSources, ...demoOrgs];
+        
+        // Add database organizations
+        const orgResponse = await axios.get("/admin/organizations", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
-        const orgs = orgResponse.data.organizations.map((org) => ({
+        const orgs = (orgResponse.data.organizations || []).map((org) => ({
           ...org,
           sourceType: "organization",
         }));
@@ -38,10 +49,18 @@ const AdminPricing = () => {
       }
 
       if (filter === "all" || filter === "hospital") {
-        const hospResponse = await axios.get("/api/admin/hospitals", {
+        // Add demo hospitals
+        const demoHosps = hospitalsData.map((h) => ({
+          ...h,
+          sourceType: "hospital",
+        }));
+        allSources = [...allSources, ...demoHosps];
+        
+        // Add database hospitals
+        const hospResponse = await axios.get("/admin/hospitals", {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
-        const hosps = hospResponse.data.hospitals.map((h) => ({
+        const hosps = (hospResponse.data.hospitals || []).map((h) => ({
           ...h,
           sourceType: "hospital",
         }));
@@ -52,6 +71,18 @@ const AdminPricing = () => {
       setLoading(false);
     } catch (error) {
       console.error("Error loading sources:", error);
+      // Show demo data even if API fails
+      let demoSources = [];
+      if (filter === "all" || filter === "organization") {
+        const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const demoOrgs = allDemoOrgs.map((org) => ({ ...org, sourceType: "organization" }));
+        demoSources = [...demoSources, ...demoOrgs];
+      }
+      if (filter === "all" || filter === "hospital") {
+        const demoHosps = hospitalsData.map((h) => ({ ...h, sourceType: "hospital" }));
+        demoSources = [...demoSources, ...demoHosps];
+      }
+      setSources(demoSources);
       setLoading(false);
     }
   };
@@ -82,8 +113,8 @@ const AdminPricing = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       const endpoint = editingItem.sourceType === "hospital"
-        ? `/api/admin/hospitals/${editingItem._id}/pricing`
-        : `/api/admin/organizations/${editingItem._id}/pricing`;
+        ? `/admin/hospitals/${editingItem._id}/pricing`
+        : `/admin/organizations/${editingItem._id}/pricing`;
 
       const pricingData = editingItem.sourceType === "hospital"
         ? {

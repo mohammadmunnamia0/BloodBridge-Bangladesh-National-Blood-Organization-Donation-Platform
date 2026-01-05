@@ -1,38 +1,61 @@
 import { useEffect, useState } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 const Navbar = () => {
   const [user, setUser] = useState(null);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Get user from localStorage
-    try {
-      const storedUser = localStorage.getItem("user");
-      if (storedUser) {
-        const parsedUser = JSON.parse(storedUser);
-        if (parsedUser && typeof parsedUser === "object") {
-          setUser(parsedUser);
+    const checkUserAuth = () => {
+      try {
+        const storedUser = localStorage.getItem("user");
+        const token = localStorage.getItem("token");
+        
+        if (storedUser && token) {
+          const parsedUser = JSON.parse(storedUser);
+          if (parsedUser && typeof parsedUser === "object") {
+            setUser(parsedUser);
+          } else {
+            // Invalid data format
+            setUser(null);
+          }
         } else {
-          // If invalid data, clear it
-          localStorage.removeItem("user");
-          localStorage.removeItem("token");
+          // No user or token
+          setUser(null);
         }
+      } catch (error) {
+        console.error("Error parsing user data:", error);
+        // Invalid JSON - set to null but don't clear storage
+        // Let the Profile page or login handle it
+        setUser(null);
       }
-    } catch (error) {
-      console.error("Error parsing user data:", error);
-      // Clear invalid data
-      localStorage.removeItem("user");
-      localStorage.removeItem("token");
-    }
-  }, []);
+    };
+
+    checkUserAuth();
+    
+    // Listen for storage changes (e.g., from login/logout in other tabs or after login)
+    window.addEventListener("storage", checkUserAuth);
+    
+    return () => {
+      window.removeEventListener("storage", checkUserAuth);
+    };
+  }, [location.pathname]);
 
   const handleLogout = () => {
+    // Clear all authentication data
     localStorage.removeItem("token");
     localStorage.removeItem("user");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+    localStorage.removeItem("isAdminLoggedIn");
     setUser(null);
-    window.location.href = "/login";
+    // Trigger storage event
+    window.dispatchEvent(new Event("storage"));
+    navigate("/login");
   };
 
   const toggleMobileMenu = () => {
@@ -98,26 +121,11 @@ const Navbar = () => {
               to="/blood-requests"
               className={`text-sm transition-colors duration-300 relative group ${
                 location.pathname === "/blood-requests" 
-                  ? "text-red-500 font-semibold" 
-                  : "text-red-500 hover:text-red-600"
+                  ? "text-red-500 font-bold" 
+                  : "text-red-500 hover:text-red-600 font-bold"
               }`}
             >
-              <span className="inline-flex">
-                {"Blood Requests".split("").map((char, index) => (
-                  <span
-                    key={index}
-                    className="inline-block animate-wave-bold"
-                    style={{
-                      animationDelay: `${index * 0.1}s`
-                    }}
-                  >
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                ))}
-              </span>
-              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
-                location.pathname === "/blood-requests" ? "w-full" : "w-0 group-hover:w-full"
-              }`}></span>
+              Blood Requests
             </Link>
             <Link
               to="/buy-blood"
@@ -157,21 +165,6 @@ const Navbar = () => {
                 My Profile
                 <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
                   location.pathname === "/profile" ? "w-full" : "w-0 group-hover:w-full"
-                }`}></span>
-              </Link>
-            )}
-            {localStorage.getItem("isAdminLoggedIn") === "true" && (
-              <Link
-                to="/admin"
-                className={`text-sm transition-colors duration-300 relative group ${
-                  location.pathname.startsWith("/admin") 
-                    ? "text-purple-700 font-semibold" 
-                    : "text-purple-600 hover:text-purple-700"
-                }`}
-              >
-                Admin
-                <span className={`absolute bottom-0 left-0 h-0.5 bg-purple-600 transition-all duration-300 ${
-                  location.pathname.startsWith("/admin") ? "w-full" : "w-0 group-hover:w-full"
                 }`}></span>
               </Link>
             )}
@@ -345,24 +338,12 @@ const Navbar = () => {
               to="/blood-requests"
               className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 location.pathname === "/blood-requests" 
-                  ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
-                  : "text-red-500 hover:text-red-600 hover:bg-gray-50"
+                  ? "text-red-500 bg-red-50 font-bold border-l-4 border-red-500" 
+                  : "text-red-500 hover:text-red-600 hover:bg-gray-50 font-bold"
               }`}
               onClick={() => setIsMobileMenuOpen(false)}
             >
-              <span className="inline-flex flex-wrap">
-                {"Blood Requests".split("").map((char, index) => (
-                  <span
-                    key={index}
-                    className="inline-block animate-wave-bold"
-                    style={{
-                      animationDelay: `${index * 0.1}s`
-                    }}
-                  >
-                    {char === " " ? "\u00A0" : char}
-                  </span>
-                ))}
-              </span>
+              Blood Requests
             </Link>
             <Link
               to="/buy-blood"

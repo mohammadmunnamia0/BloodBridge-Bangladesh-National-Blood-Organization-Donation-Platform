@@ -15,7 +15,7 @@ const PendingOrganizations = () => {
 
   const fetchPendingOrganizations = async () => {
     try {
-      const response = await axios.get('/api/admin/organizations/pending');
+      const response = await axios.get('/admin/organizations/pending');
       setOrganizations(response.data);
       setError('');
     } catch (err) {
@@ -29,7 +29,7 @@ const PendingOrganizations = () => {
   const handleApprove = async (id) => {
     setActionLoading(id);
     try {
-      await axios.patch(`/api/admin/organizations/${id}/approve`);
+      await axios.patch(`/admin/organizations/${id}/approve`);
       setOrganizations(organizations.filter(org => org._id !== id));
       alert('Organization approved successfully!');
     } catch (err) {
@@ -47,7 +47,7 @@ const PendingOrganizations = () => {
 
     setActionLoading(id);
     try {
-      await axios.patch(`/api/admin/organizations/${id}/reject`, {
+      await axios.patch(`/admin/organizations/${id}/reject`, {
         reason: rejectionReason
       });
       setOrganizations(organizations.filter(org => org._id !== id));

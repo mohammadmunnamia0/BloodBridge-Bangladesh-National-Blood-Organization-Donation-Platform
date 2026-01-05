@@ -46,7 +46,7 @@ const RegisterOrganization = () => {
 
     try {
       const { confirmPassword, ...registrationData } = formData;
-      await axios.post('/api/admin/organizations/register', registrationData);
+      await axios.post('/admin/organizations/register', registrationData);
       setSuccess(true);
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please try again.');

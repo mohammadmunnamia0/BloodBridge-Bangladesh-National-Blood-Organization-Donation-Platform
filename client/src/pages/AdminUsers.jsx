@@ -29,14 +29,19 @@ const AdminUsers = () => {
       if (filter.role !== "all") params.append("role", filter.role);
       if (filter.status !== "all") params.append("status", filter.status);
 
-      const response = await axios.get(`/api/admin/users?${params.toString()}`, {
+      console.log("Fetching users with params:", params.toString());
+      const response = await axios.get(`/admin/users?${params.toString()}`, {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
-      setUsers(response.data.users);
-      setPagination(response.data.pagination);
+      
+      console.log("Users response:", response.data);
+      setUsers(response.data.users || []);
+      setPagination(response.data.pagination || { page: 1, total: 0, pages: 0 });
       setLoading(false);
     } catch (error) {
       console.error("Error fetching users:", error);
+      console.error("Error details:", error.response?.data);
+      setUsers([]);
       setLoading(false);
     }
   };
@@ -51,7 +56,7 @@ const AdminUsers = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       await axios.patch(
-        `/api/admin/users/${selectedUser._id}/ban`,
+        `/admin/users/${selectedUser._id}/ban`,
         { isBanned, banReason: isBanned ? banReason : null },
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );

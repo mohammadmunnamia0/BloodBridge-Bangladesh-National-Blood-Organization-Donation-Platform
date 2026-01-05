@@ -35,6 +35,8 @@ router.post("/", auth, async (req, res) => {
       urgency,
       requiredDate,
       userNotes,
+      deliveryAddress,
+      paymentMethod,
     } = req.body;
 
     // Validate required fields
@@ -87,16 +89,10 @@ router.post("/", auth, async (req, res) => {
       });
     }
 
-    // Validate pricing
-    if (
-      !pricing.bloodPrice ||
-      !pricing.processingFee ||
-      !pricing.screeningFee ||
-      !pricing.serviceCharge ||
-      !pricing.totalCost
-    ) {
+    // Validate pricing - only check for required fields
+    if (!pricing || !pricing.totalCost) {
       return res.status(400).json({
-        message: "Incomplete pricing information",
+        message: "Pricing information is required",
       });
     }
 
@@ -127,6 +123,10 @@ router.post("/", auth, async (req, res) => {
       urgency,
       requiredDate: new Date(requiredDate),
       userNotes,
+      paymentMethod: paymentMethod || "cash",
+      shippingDetails: {
+        deliveryAddress: deliveryAddress || "",
+      },
       status: "pending",
       statusHistory: [
         {
@@ -292,7 +292,7 @@ router.delete("/:id", auth, async (req, res) => {
     }
 
     // Check if the user owns this purchase
-    if (purchase.purchasedBy.toString() !== req.user.userId) {
+    if (purchase.purchasedBy.toString() !== req.userId) {
       return res.status(403).json({
         message: "Unauthorized to cancel this purchase",
       });

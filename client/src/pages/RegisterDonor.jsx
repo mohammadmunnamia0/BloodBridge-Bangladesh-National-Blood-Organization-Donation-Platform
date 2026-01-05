@@ -31,23 +31,41 @@ const RegisterDonor = () => {
       password: formData.get("password"),
     };
 
+    // Validate all required fields are present
+    if (!data.fullName || !data.email || !data.phone || !data.dateOfBirth || 
+        !data.gender || !data.address || !data.city || !data.state || 
+        !data.zipCode || !data.bloodType || !data.password) {
+      setError("Please fill in all required fields");
+      setLoading(false);
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(data.email)) {
+      setError("Please enter a valid email address");
+      setLoading(false);
+      return;
+    }
+
     // Validate weight
-    if (data.weight < 45) {
+    if (isNaN(data.weight) || data.weight < 45) {
       setError("Weight must be at least 45 kg");
       setLoading(false);
       return;
     }
 
     // Validate password
-    if (!data.password || data.password.length < 6) {
-      setError("Password must be at least 6 characters long");
+    if (!data.password || data.password.length < 8) {
+      setError("Password must be at least 8 characters long");
       setLoading(false);
       return;
     }
 
     try {
       // Call backend registration API
-      await axios.post("/api/auth/register", data);
+      console.log("Submitting registration with data:", { ...data, password: '***' });
+      await axios.post("/auth/register", data);
 
       setShowSuccessModal(true);
       setTimeout(() => {
@@ -55,10 +73,18 @@ const RegisterDonor = () => {
       }, 2000);
     } catch (error) {
       console.error("Registration error:", error);
+      console.error("Error response:", error.response);
+      console.error("Error data:", error.response?.data);
+      console.error("Error status:", error.response?.status);
+      
       if (error.response?.status === 400 && error.response?.data?.message?.includes("already exists")) {
         setError("A user with this email already exists. Please login instead.");
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else if (error.message) {
+        setError(error.message);
       } else {
-        setError(error.response?.data?.message || "Registration failed. Please try again.");
+        setError("Registration failed. Please try again.");
       }
     } finally {
       setLoading(false);
@@ -191,8 +217,8 @@ const RegisterDonor = () => {
                       name="password"
                       type="password"
                       required
-                      minLength={6}
-                      placeholder="At least 6 characters"
+                      minLength={8}
+                      placeholder="At least 8 characters"
                       className="mt-1 block w-full px-4 py-2.5 border border-gray-300 rounded-lg shadow-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition duration-150 ease-in-out"
                     />
                   </div>

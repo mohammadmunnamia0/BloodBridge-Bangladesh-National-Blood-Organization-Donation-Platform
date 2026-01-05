@@ -11,6 +11,16 @@ export const hospitalsData = [
     status: "approved",
     isActive: true,
     isDemoData: true,
+    bloodInventory: {
+      "A+": 25, "A-": 8, "B+": 30, "B-": 5,
+      "AB+": 10, "AB-": 3, "O+": 40, "O-": 7
+    },
+    pricing: {
+      bloodPrice: 500,
+      processingFee: 200,
+      screeningFee: 150,
+      serviceCharge: 100
+    }
   },
   {
     _id: "demo-2",
@@ -24,6 +34,16 @@ export const hospitalsData = [
     status: "approved",
     isActive: true,
     isDemoData: true,
+    bloodInventory: {
+      "A+": 35, "A-": 12, "B+": 28, "B-": 8,
+      "AB+": 15, "AB-": 5, "O+": 50, "O-": 10
+    },
+    pricing: {
+      bloodPrice: 550,
+      processingFee: 250,
+      screeningFee: 175,
+      serviceCharge: 125
+    }
   },
   {
     _id: "demo-3",
@@ -37,6 +57,16 @@ export const hospitalsData = [
     status: "approved",
     isActive: true,
     isDemoData: true,
+    bloodInventory: {
+      "A+": 20, "A-": 6, "B+": 22, "B-": 4,
+      "AB+": 8, "AB-": 2, "O+": 35, "O-": 5
+    },
+    pricing: {
+      bloodPrice: 480,
+      processingFee: 180,
+      screeningFee: 140,
+      serviceCharge: 90
+    }
   },
   {
     _id: "demo-4",
@@ -50,6 +80,16 @@ export const hospitalsData = [
     status: "approved",
     isActive: true,
     isDemoData: true,
+    bloodInventory: {
+      "A+": 30, "A-": 10, "B+": 25, "B-": 6,
+      "AB+": 12, "AB-": 4, "O+": 45, "O-": 8
+    },
+    pricing: {
+      bloodPrice: 520,
+      processingFee: 210,
+      screeningFee: 160,
+      serviceCharge: 110
+    }
   },
   {
     _id: "demo-5",
@@ -63,5 +103,15 @@ export const hospitalsData = [
     status: "approved",
     isActive: true,
     isDemoData: true,
+    bloodInventory: {
+      "A+": 18, "A-": 5, "B+": 20, "B-": 3,
+      "AB+": 7, "AB-": 2, "O+": 30, "O-": 4
+    },
+    pricing: {
+      bloodPrice: 460,
+      processingFee: 170,
+      screeningFee: 130,
+      serviceCharge: 80
+    }
   },
 ];

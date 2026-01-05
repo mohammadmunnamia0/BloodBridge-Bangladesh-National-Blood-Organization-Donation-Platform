@@ -1,14 +1,19 @@
 export const organizationsData = {
   national: [
     {
-      id: 1,
+      _id: "org-demo-1",
       name: "Bangladesh Red Crescent Society (BDRCS)",
       description:
         "Operates 10 blood centers nationwide, including in Dhaka, Chattogram, Sylhet, Rajshahi, Dinajpur, Jessore, Natore, Magura, and Gopalganj.",
       contact: "01811 458524 (9:00 AM – 5:00 PM)",
+      address: "Red Crescent Bhaban, 684-686 Bara Moghbazar, Dhaka-1217",
+      phone: "02-9347340",
+      email: "info@bdrcs.org",
       website: "https://bdrcs.org/donate-blood/",
-      category: "National",
+      category: "national",
       icon: "🏥",
+      isActive: true,
+      isDemoData: true,
       bloodInventory: {
         "A+": 45,
         "A-": 12,
@@ -20,10 +25,10 @@ export const organizationsData = {
         "O-": 10,
       },
       pricing: {
-        bloodPrice: 1500, // BDT per unit
+        bloodPrice: 1500,
         processingFee: 200,
-        screeningFee: 300,
-        serviceCharge: 100,
+        deliveryCharge: 100,
+        handlingFee: 50,
       },
     },
     {

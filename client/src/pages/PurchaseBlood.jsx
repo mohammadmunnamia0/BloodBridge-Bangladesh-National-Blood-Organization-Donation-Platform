@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { organizationsData } from "../utils/organizationsData";
 import { hospitals } from "../Utlity/hospitals";
-import axios from "axios";
+import axios from "../utils/axios";
 
 const PurchaseBlood = () => {
   const navigate = useNavigate();
@@ -12,6 +12,11 @@ const PurchaseBlood = () => {
   const [showResults, setShowResults] = useState(false);
   const [selectedSource, setSelectedSource] = useState(null);
   const [showPurchaseModal, setShowPurchaseModal] = useState(false);
+  
+  // Data from database
+  const [dbOrganizations, setDbOrganizations] = useState([]);
+  const [dbHospitals, setDbHospitals] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
   
   // Purchase form data
   const [units, setUnits] = useState(1);
@@ -23,8 +28,33 @@ const PurchaseBlood = () => {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [requiredDate, setRequiredDate] = useState("");
+  const [userNotes, setUserNotes] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("cash");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  // Fetch organizations and hospitals from database
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setDataLoading(true);
+        const [orgsResponse, hospsResponse] = await Promise.all([
+          axios.get("/public/organizations"),
+          axios.get("/public/hospitals")
+        ]);
+        
+        setDbOrganizations(orgsResponse.data || []);
+        setDbHospitals(hospsResponse.data || []);
+      } catch (err) {
+        console.error("Error fetching data:", err);
+      } finally {
+        setDataLoading(false);
+      }
+    };
+    
+    fetchData();
+  }, []);
 
   const handleSearch = () => {
     if (!bloodType) {
@@ -34,11 +64,12 @@ const PurchaseBlood = () => {
 
     let allSources = [];
 
-    // Collect all sources with their blood inventory
+    // Collect all sources with their blood inventory (merge static and database data)
     if (filterBy === "all" || filterBy === "organization") {
       const orgs = [
         ...organizationsData.national,
         ...organizationsData.digital,
+        ...dbOrganizations,
       ];
       orgs.forEach((org) => {
         if (org.bloodInventory && org.bloodInventory[bloodType] > 0) {
@@ -53,7 +84,8 @@ const PurchaseBlood = () => {
     }
 
     if (filterBy === "all" || filterBy === "hospital") {
-      hospitals.forEach((hospital) => {
+      const allHospitals = [...hospitals, ...dbHospitals];
+      allHospitals.forEach((hospital) => {
         if (
           hospital.bloodInventory &&
           hospital.bloodInventory[bloodType] > 0
@@ -118,6 +150,9 @@ const PurchaseBlood = () => {
         contactPhone,
         contactEmail: contactEmail || undefined,
         deliveryAddress,
+        requiredDate: requiredDate || new Date().toISOString(),
+        userNotes: userNotes || undefined,
+        paymentMethod,
         sourceId: selectedSource.id.toString(),
         sourceName: selectedSource.name,
         sourceType: selectedSource.sourceType,
@@ -133,7 +168,7 @@ const PurchaseBlood = () => {
       };
 
       const response = await axios.post(
-        "/api/blood-purchases",
+        "/blood-purchases",
         purchaseData,
         {
           headers: {
@@ -142,11 +177,11 @@ const PurchaseBlood = () => {
         }
       );
 
-      // Navigate to success page with tracking number
+      // Navigate to success page with tracking number and purchase data
       navigate("/purchase-success", {
         state: {
-          trackingNumber: response.data.trackingNumber,
-          purchase: response.data,
+          trackingNumber: response.data.purchase.trackingNumber,
+          purchase: response.data.purchase,
         },
       });
     } catch (err) {
@@ -501,6 +536,53 @@ const PurchaseBlood = () => {
                       onChange={(e) => setDeliveryAddress(e.target.value)}
                       required
                       rows="2"
+                      placeholder="Enter complete delivery address with area, city, and postal code"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Required Date *
+                    </label>
+                    <input
+                      type="date"
+                      value={requiredDate}
+                      onChange={(e) => setRequiredDate(e.target.value)}
+                      min={new Date().toISOString().split('T')[0]}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Payment Method *
+                    </label>
+                    <select
+                      value={paymentMethod}
+                      onChange={(e) => setPaymentMethod(e.target.value)}
+                      required
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="cash">Cash on Delivery</option>
+                      <option value="bkash">bKash</option>
+                      <option value="nagad">Nagad</option>
+                      <option value="rocket">Rocket</option>
+                      <option value="card">Credit/Debit Card</option>
+                      <option value="bank">Bank Transfer</option>
+                    </select>
+                  </div>
+
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Additional Notes
+                    </label>
+                    <textarea
+                      value={userNotes}
+                      onChange={(e) => setUserNotes(e.target.value)}
+                      rows="2"
+                      placeholder="Any special requirements or instructions..."
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                     />
                   </div>

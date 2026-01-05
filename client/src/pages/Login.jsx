@@ -16,18 +16,25 @@ const Login = () => {
 
     try {
       // Call backend login API
-      const response = await axios.post("/api/auth/login", {
+      const response = await axios.post("/auth/login", {
         email,
         password,
       });
 
+      // Clear any existing admin token to prevent conflicts
+      localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminUser");
+      
       // Store authentication data
       localStorage.setItem("token", response.data.token);
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("user", JSON.stringify(response.data.user));
 
+      // Trigger a storage event for the current window (since storage events don't fire in the same window)
+      window.dispatchEvent(new Event("storage"));
+
       // Redirect to home page
-      window.location.href = "/";
+      navigate("/");
     } catch (error) {
       console.error("Login error:", error);
       if (error.response?.status === 400) {
