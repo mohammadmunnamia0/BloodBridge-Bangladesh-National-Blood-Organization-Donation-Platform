@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from '../utils/axios';
+import Footer from '../Components/Shared/Footer';
 
 const RegisterOrganization = () => {
   const navigate = useNavigate();

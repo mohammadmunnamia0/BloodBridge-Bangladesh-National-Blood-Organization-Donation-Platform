@@ -130,7 +130,7 @@ const BloodRequestDashboard = () => {
         setError("");
 
         // Fetch from API
-        const response = await axios.get("/api/public/blood-requests");
+        const response = await axios.get("/public/blood-requests");
         const apiRequests = response.data || [];
         
         // Get user requests from localStorage (for user-created requests not yet in DB)
