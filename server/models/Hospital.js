@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
 
 const hospitalSchema = new mongoose.Schema({
   name: {
@@ -25,10 +24,6 @@ const hospitalSchema = new mongoose.Schema({
     trim: true,
     lowercase: true,
     unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
   },
   address: {
     type: String,
@@ -99,27 +94,11 @@ const hospitalSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving
-hospitalSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    this.updatedAt = Date.now();
-    return next();
-  }
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    this.updatedAt = Date.now();
-    next();
-  } catch (error) {
-    next(error);
-  }
+// Update timestamp before saving
+hospitalSchema.pre("save", function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
-
-// Method to compare password
-hospitalSchema.methods.comparePassword = async function (candidatePassword) {
-  return bcrypt.compare(candidatePassword, this.password);
-};
 
 const Hospital = mongoose.models.Hospital || mongoose.model("Hospital", hospitalSchema);
 

@@ -12,7 +12,9 @@ const AdminOrganizations = () => {
     name: "",
     category: "national",
     location: "",
+    address: "",
     contact: "",
+    phone: "",
     email: "",
     website: "",
     bloodInventory: {
@@ -50,9 +52,9 @@ const AdminOrganizations = () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       const dbOrganizations = response.data.organizations || [];
-      // Merge all demo data with database data
+      // Put database organizations first, then demo data
       const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
-      const mergedOrganizations = [...allDemoOrgs, ...dbOrganizations];
+      const mergedOrganizations = [...dbOrganizations, ...allDemoOrgs];
       setOrganizations(mergedOrganizations);
       setLoading(false);
     } catch (error) {
@@ -70,7 +72,9 @@ const AdminOrganizations = () => {
       name: "",
       category: "national",
       location: "",
+      address: "",
       contact: "",
+      phone: "",
       email: "",
       website: "",
       bloodInventory: {
@@ -88,12 +92,23 @@ const AdminOrganizations = () => {
   };
 
   const handleEdit = (org) => {
+    // Check if it's a demo organization (non-MongoDB ID)
+    if (org._id && !org._id.match(/^[0-9a-fA-F]{24}$/)) {
+      alert("Cannot edit demo organizations. Please create a new organization instead.");
+      return;
+    }
     setEditingOrg(org);
     setFormData(org);
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
+    // Check if it's a demo organization (non-MongoDB ID)
+    if (id && !id.match(/^[0-9a-fA-F]{24}$/)) {
+      alert("Cannot delete demo organizations. Only database organizations can be deleted.");
+      return;
+    }
+    
     if (!window.confirm("Are you sure you want to delete this organization?")) return;
 
     try {
@@ -114,7 +129,7 @@ const AdminOrganizations = () => {
     try {
       const adminToken = localStorage.getItem("adminToken");
       if (editingOrg) {
-        await axios.patch(`/admin/organizations/${editingOrg._id}`, formData, {
+        await axios.put(`/admin/organizations/${editingOrg._id}`, formData, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Organization updated successfully!");
@@ -128,7 +143,7 @@ const AdminOrganizations = () => {
       fetchOrganizations();
     } catch (error) {
       console.error("Error saving organization:", error);
-      alert("Failed to save organization");
+      alert("Failed to save organization: " + (error.response?.data?.message || error.message));
     }
   };
 
@@ -355,6 +370,33 @@ const AdminOrganizations = () => {
                     value={formData.location}
                     onChange={(e) => setFormData({ ...formData, location: e.target.value })}
                     required
+                    placeholder="e.g., Dhaka"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Address *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.address}
+                    onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                    required
+                    placeholder="Full address"
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Phone *
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.phone}
+                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    required
+                    placeholder="e.g., 01XXXXXXXXX"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
@@ -367,15 +409,18 @@ const AdminOrganizations = () => {
                     value={formData.contact}
                     onChange={(e) => setFormData({ ...formData, contact: e.target.value })}
                     required
+                    placeholder="Alternative contact"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    required
+                    placeholder="organization@example.com"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
                 </div>
@@ -387,6 +432,120 @@ const AdminOrganizations = () => {
                     onChange={(e) => setFormData({ ...formData, website: e.target.value })}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
+                </div>
+              </div>
+
+              {/* Pricing Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Pricing Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Blood Price (৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.pricing.bloodPrice}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pricing: { ...formData.pricing, bloodPrice: Number(e.target.value) },
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Processing Fee (৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.pricing.processingFee}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pricing: { ...formData.pricing, processingFee: Number(e.target.value) },
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Delivery Charge (৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.pricing.deliveryCharge}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pricing: { ...formData.pricing, deliveryCharge: Number(e.target.value) },
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Handling Fee (৳)
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.pricing.handlingFee}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          pricing: { ...formData.pricing, handlingFee: Number(e.target.value) },
+                        })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                    />
+                  </div>
+                </div>
+                <div className="mt-2 bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>Total Price:</strong> ৳{calculateTotal(formData.pricing)}
+                  </p>
+                </div>
+              </div>
+
+              {/* Blood Inventory Section */}
+              <div className="border-t pt-4 mt-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">Blood Inventory (Units)</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {Object.keys(formData.bloodInventory).map((bloodType) => (
+                    <div key={bloodType}>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        {bloodType}
+                      </label>
+                      <input
+                        type="number"
+                        min="0"
+                        value={formData.bloodInventory[bloodType]}
+                        onChange={(e) =>
+                          setFormData({
+                            ...formData,
+                            bloodInventory: {
+                              ...formData.bloodInventory,
+                              [bloodType]: Number(e.target.value),
+                            },
+                          })
+                        }
+                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
+                      />
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-2 bg-red-50 p-3 rounded-lg">
+                  <p className="text-sm text-gray-700">
+                    <strong>Total Stock:</strong> {getTotalStock(formData.bloodInventory)} units
+                  </p>
                 </div>
               </div>
 

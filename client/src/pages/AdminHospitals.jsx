@@ -47,8 +47,8 @@ const AdminHospitals = () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       const dbHospitals = response.data.hospitals || [];
-      // Merge demo data with database data
-      const mergedHospitals = [...hospitalsData, ...dbHospitals];
+      // Put database hospitals first, then demo data
+      const mergedHospitals = [...dbHospitals, ...hospitalsData];
       setHospitals(mergedHospitals);
       setLoading(false);
     } catch (error) {
@@ -86,12 +86,23 @@ const AdminHospitals = () => {
   };
 
   const handleEdit = (hospital) => {
+    // Check if it's a demo hospital (non-MongoDB ID)
+    if (hospital._id && !hospital._id.match(/^[0-9a-fA-F]{24}$/)) {
+      alert("Cannot edit demo hospitals. Please create a new hospital instead.");
+      return;
+    }
     setEditingHospital(hospital);
     setFormData(hospital);
     setShowModal(true);
   };
 
   const handleDelete = async (id) => {
+    // Check if it's a demo hospital (non-MongoDB ID)
+    if (id && !id.match(/^[0-9a-fA-F]{24}$/)) {
+      alert("Cannot delete demo hospitals. Only database hospitals can be deleted.");
+      return;
+    }
+    
     if (!window.confirm("Are you sure you want to delete this hospital?")) return;
 
     try {
@@ -115,7 +126,7 @@ const AdminHospitals = () => {
       const submitData = { ...formData };
       
       if (editingHospital) {
-        await axios.patch(`/admin/hospitals/${editingHospital._id}`, submitData, {
+        await axios.put(`/admin/hospitals/${editingHospital._id}`, submitData, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Hospital updated successfully!");

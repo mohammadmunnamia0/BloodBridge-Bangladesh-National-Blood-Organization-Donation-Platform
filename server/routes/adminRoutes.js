@@ -359,7 +359,7 @@ router.get("/organizations", adminAuth, async (req, res) => {
     const organizations = await Organization.find(query)
       .populate("approvedBy", "name username")
       .sort({ createdAt: -1 });
-    res.json(organizations);
+    res.json({ organizations });
   } catch (error) {
     console.error("Get organizations error:", error);
     res.status(500).json({ message: "Server error" });
@@ -452,15 +452,26 @@ router.post("/organizations", adminAuth, superAdminOnly, async (req, res) => {
     res.status(201).json(organization);
   } catch (error) {
     console.error("Create organization error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ 
+      message: error.message || "Server error" 
+    });
   }
 });
 
 // Update organization
 router.put("/organizations/:id", adminAuth, async (req, res) => {
   try {
+    const { id } = req.params;
+    
+    // Validate if it's a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        message: "Cannot edit demo organizations. Please create a new organization instead." 
+      });
+    }
+    
     const organization = await Organization.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
       { new: true, runValidators: true }
     );
@@ -472,7 +483,9 @@ router.put("/organizations/:id", adminAuth, async (req, res) => {
     res.json(organization);
   } catch (error) {
     console.error("Update organization error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ 
+      message: error.message || "Server error" 
+    });
   }
 });
 
@@ -646,7 +659,7 @@ router.get("/hospitals", adminAuth, async (req, res) => {
       .populate("adminId", "name username")
       .populate("approvedBy", "name username")
       .sort({ createdAt: -1 });
-    res.json(hospitals);
+    res.json({ hospitals });
   } catch (error) {
     console.error("Get hospitals error:", error);
     res.status(500).json({ message: "Server error" });
@@ -668,8 +681,17 @@ router.post("/hospitals", adminAuth, superAdminOnly, async (req, res) => {
 // Update hospital
 router.put("/hospitals/:id", adminAuth, async (req, res) => {
   try {
+    const { id } = req.params;
+    
+    // Validate if it's a valid MongoDB ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ 
+        message: "Cannot edit demo hospitals. Please create a new hospital instead." 
+      });
+    }
+    
     const hospital = await Hospital.findByIdAndUpdate(
-      req.params.id,
+      id,
       req.body,
       { new: true, runValidators: true }
     );
@@ -681,7 +703,9 @@ router.put("/hospitals/:id", adminAuth, async (req, res) => {
     res.json(hospital);
   } catch (error) {
     console.error("Update hospital error:", error);
-    res.status(500).json({ message: "Server error" });
+    res.status(500).json({ 
+      message: error.message || "Server error" 
+    });
   }
 });
 

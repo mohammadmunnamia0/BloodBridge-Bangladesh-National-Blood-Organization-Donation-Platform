@@ -175,7 +175,6 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-600">Welcome,</span>
                   <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg hover:shadow-red-500/30 transform hover:scale-105 transition-all duration-300">
                     <span className="text-white text-sm font-medium">
                       {user.fullName?.charAt(0) || user.email?.charAt(0)}
@@ -384,7 +383,6 @@ const Navbar = () => {
               <>
                 <div className="px-3 py-2">
                   <div className="flex items-center space-x-3">
-                    <span className="text-gray-600">Welcome,</span>
                     <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
                       <span className="text-white text-sm font-medium">
                         {user.fullName?.charAt(0) || user.email?.charAt(0)}

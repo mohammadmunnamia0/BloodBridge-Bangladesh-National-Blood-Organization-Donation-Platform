@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import bcrypt from "bcryptjs";
 
 const organizationSchema = new mongoose.Schema({
   name: {
@@ -7,10 +6,6 @@ const organizationSchema = new mongoose.Schema({
     required: true,
     trim: true,
     unique: true,
-  },
-  password: {
-    type: String,
-    required: true,
   },
   status: {
     type: String,
@@ -105,27 +100,11 @@ const organizationSchema = new mongoose.Schema({
   },
 });
 
-// Hash password before saving
-organizationSchema.pre("save", async function (next) {
-  if (!this.isModified("password")) {
-    this.updatedAt = Date.now();
-    return next();
-  }
-  
-  try {
-    const salt = await bcrypt.genSalt(10);
-    this.password = await bcrypt.hash(this.password, salt);
-    this.updatedAt = Date.now();
-    next();
-  } catch (error) {
-    next(error);
-  }
+// Update timestamp before saving
+organizationSchema.pre("save", function (next) {
+  this.updatedAt = Date.now();
+  next();
 });
-
-// Method to compare password
-organizationSchema.methods.comparePassword = async function (candidatePassword) {
-  return await bcrypt.compare(candidatePassword, this.password);
-};
 
 const Organization = mongoose.models.Organization || mongoose.model("Organization", organizationSchema);
 

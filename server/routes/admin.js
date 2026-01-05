@@ -585,11 +585,6 @@ router.post("/hospitals", adminAuth, async (req, res) => {
       approvedAt: new Date(),
     };
     
-    // Set default password if not provided
-    if (!hospitalData.password) {
-      hospitalData.password = "hospital123"; // Default password
-    }
-    
     console.log("Creating hospital with data:", hospitalData);
     const hospital = new Hospital(hospitalData);
     await hospital.save();
