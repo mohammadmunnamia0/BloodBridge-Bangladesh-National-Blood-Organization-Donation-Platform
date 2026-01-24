@@ -21,8 +21,8 @@ const organizationSchema = new mongoose.Schema({
   },
   category: {
     type: String,
-    required: true,
     enum: ["Blood Bank", "Medical Center", "Healthcare Organization", "NGO", "Foundation", "national", "hospital", "digital"],
+    default: "national",
   },
   contact: {
     type: String,

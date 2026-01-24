@@ -107,7 +107,8 @@ const AdminPurchases = () => {
         { headers: { Authorization: `Bearer ${adminToken}` } }
       );
       setShowModal(false);
-      fetchPurchases();
+      // Force a fresh fetch after updating
+      await fetchPurchases();
       alert("Purchase updated successfully!");
     } catch (error) {
       console.error("Error updating purchase:", error);
@@ -123,6 +124,7 @@ const AdminPurchases = () => {
       ready: "bg-green-100 text-green-800",
       completed: "bg-gray-100 text-gray-800",
       cancelled: "bg-red-100 text-red-800",
+      Delivered: "bg-green-100 text-green-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -316,6 +318,21 @@ const AdminPurchases = () => {
                   </div>
                 </div>
 
+                {/* Payment Method and Transaction ID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <p className="text-sm text-gray-600">Payment Method</p>
+                    <p className="font-semibold capitalize">{purchase.paymentMethod}</p>
+                  </div>
+                  {purchase.transactionId && (purchase.paymentMethod === "bkash" || purchase.paymentMethod === "nagad") && (
+                    <div className="bg-yellow-100 border-2 border-yellow-400 rounded-lg p-3">
+                      <p className="text-sm text-yellow-800 font-semibold">Transaction ID</p>
+                      <p className="font-bold text-lg text-yellow-900">{purchase.transactionId}</p>
+                      <p className="text-xs text-yellow-700 mt-1">({purchase.paymentMethod.toUpperCase()})</p>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex justify-between items-center pt-4 border-t">
                   <p className="text-sm text-gray-600">
                     Required: {formatDate(purchase.requiredDate)} | Submitted: {formatDate(purchase.createdAt)}
@@ -354,10 +371,11 @@ const AdminPurchases = () => {
                   <option value="ready">Ready</option>
                   <option value="completed">Completed</option>
                   <option value="cancelled">Cancelled</option>
+                  <option value="delivered">Delivered</option>
                 </select>
               </div>
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Admin Notes</label>
                 <textarea
                   value={updateForm.adminNotes}
@@ -366,9 +384,9 @@ const AdminPurchases = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   placeholder="Add notes for the user..."
                 />
-              </div>
+              </div> */}
 
-              <div>
+              {/* <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Special Instructions</label>
                 <textarea
                   value={updateForm.pickupInstructions}
@@ -377,7 +395,7 @@ const AdminPurchases = () => {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   placeholder="Any special instructions..."
                 />
-              </div>
+              </div> */}
 
               <div className="flex justify-end space-x-3 pt-4">
                 <button

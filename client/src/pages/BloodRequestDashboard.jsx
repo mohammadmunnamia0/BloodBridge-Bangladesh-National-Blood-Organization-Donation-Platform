@@ -250,7 +250,7 @@ const BloodRequestDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 to-white py-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="w-full px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center mb-8">
           <h1 className="text-3xl font-bold text-gray-900">Blood Requests</h1>
           <div className="flex gap-4">
@@ -280,7 +280,7 @@ const BloodRequestDashboard = () => {
           buttonAction="/register-donor"
         />
 
-        <div className="bg-white rounded-2xl shadow-xl p-8">
+        <div className="p-8">
           <div className="overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">

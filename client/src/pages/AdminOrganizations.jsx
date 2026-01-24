@@ -10,7 +10,6 @@ const AdminOrganizations = () => {
   const [editingOrg, setEditingOrg] = useState(null);
   const [formData, setFormData] = useState({
     name: "",
-    category: "national",
     location: "",
     address: "",
     contact: "",
@@ -24,17 +23,11 @@ const AdminOrganizations = () => {
     pricing: {
       bloodPrice: 0,
       processingFee: 0,
-      deliveryCharge: 0,
-      handlingFee: 0,
+      screeningFee: 0,
+      serviceCharge: 0,
     },
   });
   const navigate = useNavigate();
-
-  const categories = [
-    { value: "national", label: "🏥 National", icon: "🏥" },
-    { value: "hospital", label: "🏨 Hospital", icon: "🏨" },
-    { value: "digital", label: "💻 Digital", icon: "💻" }
-  ];
 
   useEffect(() => {
     const isAdminLoggedIn = localStorage.getItem("isAdminLoggedIn");
@@ -52,16 +45,28 @@ const AdminOrganizations = () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       const dbOrganizations = response.data.organizations || [];
-      // Put database organizations first, then demo data
-      const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
-      const mergedOrganizations = [...dbOrganizations, ...allDemoOrgs];
+      // Combine demo data with database organizations
+      const allDemoOrgs = [...organizationsData.national, ...organizationsData.digital];
+      const demoOrgsWithFlag = allDemoOrgs.map(org => ({
+        ...org,
+        isDemo: true
+      }));
+      const dbOrgsWithFlag = dbOrganizations.map(org => ({
+        ...org,
+        isDemo: false
+      }));
+      const mergedOrganizations = [...dbOrgsWithFlag, ...demoOrgsWithFlag];
       setOrganizations(mergedOrganizations);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching organizations:", error);
-      // Show demo data even if API fails
-      const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
-      setOrganizations(allDemoOrgs);
+      // Show demo data as fallback
+      const allDemoOrgs = [...organizationsData.national, ...organizationsData.digital];
+      const demoOrgsWithFlag = allDemoOrgs.map(org => ({
+        ...org,
+        isDemo: true
+      }));
+      setOrganizations(demoOrgsWithFlag);
       setLoading(false);
     }
   };
@@ -70,7 +75,6 @@ const AdminOrganizations = () => {
     setEditingOrg(null);
     setFormData({
       name: "",
-      category: "national",
       location: "",
       address: "",
       contact: "",
@@ -84,8 +88,8 @@ const AdminOrganizations = () => {
       pricing: {
         bloodPrice: 0,
         processingFee: 0,
-        deliveryCharge: 0,
-        handlingFee: 0,
+        screeningFee: 0,
+        serviceCharge: 0,
       },
     });
     setShowModal(true);
@@ -128,13 +132,15 @@ const AdminOrganizations = () => {
     e.preventDefault();
     try {
       const adminToken = localStorage.getItem("adminToken");
+      // Add default category since it's required by the backend
+      const dataWithCategory = { ...formData, category: "national" };
       if (editingOrg) {
-        await axios.put(`/admin/organizations/${editingOrg._id}`, formData, {
+        await axios.put(`/admin/organizations/${editingOrg._id}`, dataWithCategory, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Organization updated successfully!");
       } else {
-        await axios.post("/admin/organizations", formData, {
+        await axios.post("/admin/organizations", dataWithCategory, {
           headers: { Authorization: `Bearer ${adminToken}` },
         });
         alert("Organization created successfully!");
@@ -152,8 +158,8 @@ const AdminOrganizations = () => {
     return (
       (pricing.bloodPrice || 0) +
       (pricing.processingFee || 0) +
-      (pricing.deliveryCharge || 0) +
-      (pricing.handlingFee || 0)
+      (pricing.screeningFee || 0) +
+      (pricing.serviceCharge || 0)
     );
   };
 
@@ -246,7 +252,7 @@ const AdminOrganizations = () => {
             </div>
           ) : (
             organizations.map((org) => (
-              <div key={org._id} className="bg-white rounded-lg shadow-md p-6">
+              <div key={org._id} className={`bg-white rounded-lg shadow-md p-6 border-l-4 ${org.isDemo ? 'border-blue-400' : 'border-gray-300'}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div>
                     <div className="flex items-center gap-3 mb-2">
@@ -258,6 +264,9 @@ const AdminOrganizations = () => {
                       >
                         {getCategoryDisplay(org.category)}
                       </span>
+                      {org.isDemo && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">DEMO</span>
+                      )}
                     </div>
                     <p className="text-sm text-gray-600">📍 {org.location}</p>
                     <p className="text-sm text-gray-600">📞 {org.contact}</p>
@@ -266,15 +275,17 @@ const AdminOrganizations = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(org)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      disabled={org.isDemo}
+                      className={`px-4 py-2 rounded-lg transition ${org.isDemo ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
-                      Edit
+                      {org.isDemo ? 'Demo (Read Only)' : 'Edit'}
                     </button>
                     <button
                       onClick={() => handleDelete(org._id)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                      disabled={org.isDemo}
+                      className={`px-4 py-2 rounded-lg transition ${org.isDemo ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
                     >
-                      Delete
+                      {org.isDemo ? 'Demo' : 'Delete'}
                     </button>
                   </div>
                 </div>
@@ -293,15 +304,15 @@ const AdminOrganizations = () => {
                     </p>
                   </div>
                   <div className="bg-purple-50 rounded-lg p-3">
-                    <p className="text-sm text-gray-600">Delivery Charge</p>
+                    <p className="text-sm text-gray-600">Screening Fee</p>
                     <p className="text-xl font-bold text-purple-600">
-                      ৳{org.pricing?.deliveryCharge || 0}
+                      ৳{org.pricing?.screeningFee || 0}
                     </p>
                   </div>
                   <div className="bg-orange-50 rounded-lg p-3">
-                    <p className="text-sm text-gray-600">Handling Fee</p>
+                    <p className="text-sm text-gray-600">Service Charge</p>
                     <p className="text-xl font-bold text-orange-600">
-                      ৳{org.pricing?.handlingFee || 0}
+                      ৳{org.pricing?.serviceCharge || 0}
                     </p>
                   </div>
                 </div>
@@ -343,23 +354,6 @@ const AdminOrganizations = () => {
                     required
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Category *
-                  </label>
-                  <select
-                    value={formData.category}
-                    onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    required
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
-                  >
-                    {categories.map((cat) => (
-                      <option key={cat.value} value={cat.value}>
-                        {cat.label}
-                      </option>
-                    ))}
-                  </select>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -475,16 +469,16 @@ const AdminOrganizations = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Delivery Charge (৳)
+                      Screening/Test Fee (৳)
                     </label>
                     <input
                       type="number"
                       min="0"
-                      value={formData.pricing.deliveryCharge}
+                      value={formData.pricing.screeningFee}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          pricing: { ...formData.pricing, deliveryCharge: Number(e.target.value) },
+                          pricing: { ...formData.pricing, screeningFee: Number(e.target.value) },
                         })
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"
@@ -492,16 +486,16 @@ const AdminOrganizations = () => {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Handling Fee (৳)
+                      Service Charge (৳)
                     </label>
                     <input
                       type="number"
                       min="0"
-                      value={formData.pricing.handlingFee}
+                      value={formData.pricing.serviceCharge}
                       onChange={(e) =>
                         setFormData({
                           ...formData,
-                          pricing: { ...formData.pricing, handlingFee: Number(e.target.value) },
+                          pricing: { ...formData.pricing, serviceCharge: Number(e.target.value) },
                         })
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500"

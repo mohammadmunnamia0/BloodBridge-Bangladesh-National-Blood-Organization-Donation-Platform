@@ -23,7 +23,7 @@ const PriceComparison = () => {
         setLoading(true);
         
         // Get demo organizations
-        const demoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const demoOrgs = [...organizationsData.national, ...organizationsData.digital];
         
         const [hospsResponse, orgsResponse] = await Promise.all([
           axiosInstance.get("/public/hospitals").catch(() => ({ data: [] })),
@@ -37,7 +37,7 @@ const PriceComparison = () => {
       } catch (err) {
         console.error("Error fetching data:", err);
         // Even if API fails, show demo data
-        const demoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const demoOrgs = [...organizationsData.national, ...organizationsData.digital];
         setHospitals(hospitalsData);
         setOrganizations(demoOrgs);
         setError(null);

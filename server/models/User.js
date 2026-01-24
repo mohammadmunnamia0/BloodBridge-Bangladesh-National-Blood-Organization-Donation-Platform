@@ -84,6 +84,9 @@ const userSchema = new mongoose.Schema({
     enum: ["donor", "admin"],
     default: "donor",
   },
+  refreshToken: {
+    type: String,
+  },
   
   // Ban Management
   isBanned: {
@@ -99,6 +102,15 @@ const userSchema = new mongoose.Schema({
   bannedBy: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
+  },
+  
+  // Donor Information
+  isDonor: {
+    type: Boolean,
+    default: false,
+  },
+  donorVerifiedAt: {
+    type: Date,
   },
   
   // Demo User Flag

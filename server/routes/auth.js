@@ -5,6 +5,23 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
+// Helper function to generate tokens
+const generateTokens = (userId) => {
+  const accessToken = jwt.sign(
+    { userId },
+    process.env.JWT_SECRET || "bloodservice_secret_key_2024",
+    { expiresIn: "1h" } // Short-lived access token
+  );
+
+  const refreshToken = jwt.sign(
+    { userId },
+    process.env.JWT_REFRESH_SECRET || "bloodservice_refresh_secret_2024",
+    { expiresIn: "7d" } // Long-lived refresh token
+  );
+
+  return { accessToken, refreshToken };
+};
+
 // Register new user
 router.post("/register", async (req, res) => {
   try {
@@ -66,15 +83,16 @@ router.post("/register", async (req, res) => {
 
     await user.save();
 
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || "bloodservice_secret_key_2024",
-      { expiresIn: "24h" }
-    );
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
+    await user.save();
 
     res.status(201).json({
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -122,17 +140,18 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid credentials" });
     }
 
-    // Create JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      process.env.JWT_SECRET || "bloodservice_secret_key_2024",
-      { expiresIn: "24h" }
-    );
+    // Generate tokens
+    const { accessToken, refreshToken } = generateTokens(user._id);
+
+    // Save refresh token to user
+    user.refreshToken = refreshToken;
+    await user.save();
 
     // Ensure we're sending a proper JSON response
     return res.status(200).json({
       success: true,
-      token,
+      accessToken,
+      refreshToken,
       user: {
         id: user._id,
         fullName: user.fullName,
@@ -147,6 +166,45 @@ router.post("/login", async (req, res) => {
       message: "Server error",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
     });
+  }
+});
+
+// Refresh token endpoint
+router.post("/refresh", async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+
+    if (!refreshToken) {
+      return res.status(400).json({ message: "Refresh token is required" });
+    }
+
+    // Verify refresh token
+    const decoded = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET || "bloodservice_refresh_secret_2024"
+    );
+
+    // Find user and verify refresh token matches
+    const user = await User.findById(decoded.userId);
+    if (!user || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ message: "Invalid refresh token" });
+    }
+
+    // Generate new tokens
+    const { accessToken, refreshToken: newRefreshToken } = generateTokens(user._id);
+
+    // Save new refresh token
+    user.refreshToken = newRefreshToken;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken: newRefreshToken,
+    });
+  } catch (error) {
+    console.error("Token refresh error:", error);
+    return res.status(401).json({ message: "Invalid refresh token" });
   }
 });
 
@@ -179,6 +237,8 @@ router.get("/profile", auth, async (req, res) => {
         lastDonation: user.lastDonation,
         medicalConditions: user.medicalConditions,
         role: user.role,
+        isDonor: user.isDonor || false,
+        donorVerifiedAt: user.donorVerifiedAt || null,
       },
     });
   } catch (error) {
@@ -187,6 +247,27 @@ router.get("/profile", auth, async (req, res) => {
       success: false,
       message: "Server error",
       error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+});
+
+// Logout endpoint
+router.post("/logout", auth, async (req, res) => {
+  try {
+    const userId = req.userId;
+
+    // Clear refresh token
+    await User.findByIdAndUpdate(userId, { refreshToken: null });
+
+    return res.status(200).json({
+      success: true,
+      message: "Logged out successfully",
+    });
+  } catch (error) {
+    console.error("Logout error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
     });
   }
 });

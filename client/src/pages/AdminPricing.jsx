@@ -30,7 +30,7 @@ const AdminPricing = () => {
 
       if (filter === "all" || filter === "organization") {
         // Add demo organizations
-        const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const allDemoOrgs = [...organizationsData.national, ...organizationsData.digital];
         const demoOrgs = allDemoOrgs.map((org) => ({
           ...org,
           sourceType: "organization",
@@ -74,7 +74,7 @@ const AdminPricing = () => {
       // Show demo data even if API fails
       let demoSources = [];
       if (filter === "all" || filter === "organization") {
-        const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const allDemoOrgs = [...organizationsData.national, ...organizationsData.digital];
         const demoOrgs = allDemoOrgs.map((org) => ({ ...org, sourceType: "organization" }));
         demoSources = [...demoSources, ...demoOrgs];
       }

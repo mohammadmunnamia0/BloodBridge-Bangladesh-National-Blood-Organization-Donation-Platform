@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Modal from "./Modal";
 // import image from "/Hero/hero1.jpg";
 import image from "/Hero/Banner.png";
+// import image from "/Hero/banner2.jpg";
 
 
 const Hero = () => {
@@ -46,7 +47,7 @@ const Hero = () => {
                 onClick={() => navigate("/register-donor")}
                 className="bg-white text-red-600 px-8 py-3 rounded-full font-semibold hover:bg-red-50 transition-colors"
               >
-                Donate Now
+                Register Now
               </button>
               <button
                 onClick={handleRequestBlood}

@@ -12,15 +12,14 @@ const Organizations = () => {
 
   const categories = [
     { id: "all", name: "All Organizations", icon: "🏢" },
-    { id: "national", name: "National", icon: "🏥" },
-    { id: "hospital", name: "Hospital", icon: "🏨" },
-    { id: "digital", name: "Digital", icon: "💻" },
+    // { id: "national", name: "National", icon: "🏥" },
+    // { id: "digital", name: "Digital", icon: "💻" },
   ];
 
   // Get demo data based on category
   const getDemoData = () => {
     if (activeCategory === "all") {
-      return [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+      return [...organizationsData.national, ...organizationsData.digital];
     }
     return organizationsData[activeCategory] || [];
   };

@@ -33,6 +33,7 @@ const BuyBlood = () => {
   const [userNotes, setUserNotes] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("cod");
+  const [transactionId, setTransactionId] = useState("");
   
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -45,7 +46,6 @@ const BuyBlood = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setDataLoading(true);
         const [orgsResponse, hospsResponse] = await Promise.all([
           axios.get("/public/organizations"),
           axios.get("/public/hospitals")
@@ -68,6 +68,25 @@ const BuyBlood = () => {
     };
     
     fetchData();
+    
+    // Auto-refresh every 10 seconds to show updated prices and inventory
+    const refreshInterval = setInterval(() => {
+      fetchData();
+    }, 10000);
+
+    // Refetch data when page becomes visible (tab is brought to focus)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        fetchData();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
   }, []);
 
   // Handle pre-selected source and blood type from navigation state
@@ -93,7 +112,7 @@ const BuyBlood = () => {
     }
   }, [location.state]);
 
-  // Get all sources based on active tab (merge static data with database data)
+  // Get all sources - database sources ONLY (demo data already seeded in database)
   const getAllSources = () => {
     // Ensure dbOrganizations and dbHospitals are arrays
     const dbOrgs = Array.isArray(dbOrganizations) ? dbOrganizations : [];
@@ -103,26 +122,37 @@ const BuyBlood = () => {
     
     if (activeTab === "all") {
       result = [
-        ...organizationsData.national.map(org => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.hospital.map(org => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.digital.map(org => ({ ...org, sourceType: "organization" })),
         ...dbOrgs.map(org => ({ ...org, sourceType: "organization" })),
-        ...hospitals.map(h => ({ ...h, sourceType: "hospital" })),
         ...dbHosps.map(h => ({ ...h, sourceType: "hospital" })),
       ];
     } else if (activeTab === "organizations") {
       result = [
-        ...organizationsData.national.map(org => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.hospital.map(org => ({ ...org, sourceType: "organization" })),
-        ...organizationsData.digital.map(org => ({ ...org, sourceType: "organization" })),
         ...dbOrgs.map(org => ({ ...org, sourceType: "organization" })),
       ];
     } else {
       result = [
-        ...hospitals.map(h => ({ ...h, sourceType: "hospital" })),
         ...dbHosps.map(h => ({ ...h, sourceType: "hospital" })),
       ];
     }
+    
+    // Calculate missing fields for each source
+    result = result.map(source => ({
+      ...source,
+      // If pricePerUnit is missing, use pricing.bloodPrice or default 1200
+      pricePerUnit: source.pricePerUnit || source.pricing?.bloodPrice || 1200,
+      // Calculate totalFees from pricing object or use a default
+      totalFees: source.totalFees || (source.pricing ? 
+        (source.pricing.processingFee || 0) + 
+        (source.pricing.deliveryCharge || 0) + 
+        (source.pricing.handlingFee || 0) 
+        : 450),
+      // Ensure bloodInventory exists
+      bloodInventory: source.bloodInventory || {},
+      // Ensure contactNumber exists
+      contactNumber: source.contactNumber || source.contact || source.phone || "N/A",
+      // Ensure operatingHours exists
+      operatingHours: source.operatingHours || source.operatingTime || "9:00 AM - 5:00 PM",
+    }));
     
     console.log(`getAllSources (activeTab: ${activeTab}):`, {
       total: result.length,
@@ -144,7 +174,17 @@ const BuyBlood = () => {
       return;
     }
 
-    const availableSources = sources.filter(
+    // First filter by source type based on activeTab
+    let sourcesToSearch = sources;
+    
+    if (activeTab === "organizations") {
+      sourcesToSearch = sources.filter(s => s.sourceType === "organization");
+    } else if (activeTab === "hospitals") {
+      sourcesToSearch = sources.filter(s => s.sourceType === "hospital");
+    }
+    // If activeTab is "all", use all sources
+
+    const availableSources = sourcesToSearch.filter(
       (source) =>
         source.bloodInventory &&
         source.bloodInventory[searchBloodType] > 0 &&
@@ -155,10 +195,10 @@ const BuyBlood = () => {
     const sourcesWithPrice = availableSources.map((source) => ({
       ...source,
       totalPrice:
-        source.pricing.bloodPrice +
-        source.pricing.processingFee +
-        source.pricing.screeningFee +
-        source.pricing.serviceCharge,
+        (Number(source.pricing.bloodPrice) || 0) +
+        (Number(source.pricing.processingFee) || 0) +
+        (Number(source.pricing.screeningFee) || 0) +
+        (Number(source.pricing.serviceCharge) || 0),
       availableUnits: source.bloodInventory[searchBloodType],
     }));
 
@@ -175,6 +215,44 @@ const BuyBlood = () => {
     setShowSearchResults(false);
     setUnits(1);
   };
+
+  // Auto-refresh search results when source data updates
+  useEffect(() => {
+    if (showSearchResults && searchBloodType) {
+      const refreshSearchResults = () => {
+        // Re-filter and sort search results with updated source data
+        let sourcesToSearch = sources;
+        
+        if (activeTab === "organizations") {
+          sourcesToSearch = sources.filter(s => s.sourceType === "organization");
+        } else if (activeTab === "hospitals") {
+          sourcesToSearch = sources.filter(s => s.sourceType === "hospital");
+        }
+
+        const availableSources = sourcesToSearch.filter(
+          (source) =>
+            source.bloodInventory &&
+            source.bloodInventory[searchBloodType] > 0 &&
+            source.pricing
+        );
+
+        const sourcesWithPrice = availableSources.map((source) => ({
+          ...source,
+          totalPrice:
+            (Number(source.pricing.bloodPrice) || 0) +
+            (Number(source.pricing.processingFee) || 0) +
+            (Number(source.pricing.screeningFee) || 0) +
+            (Number(source.pricing.serviceCharge) || 0),
+          availableUnits: source.bloodInventory[searchBloodType],
+        }));
+
+        sourcesWithPrice.sort((a, b) => a.totalPrice - b.totalPrice);
+        setSearchResults(sourcesWithPrice);
+      };
+
+      refreshSearchResults();
+    }
+  }, [sources, searchBloodType, showSearchResults, activeTab]);
 
   // Calculate total cost
   const calculateTotal = () => {
@@ -202,7 +280,19 @@ const BuyBlood = () => {
   };
 
   const handleSelectSource = (source) => {
-    setSelectedSource(source);
+    // Ensure source has all required data before selection
+    const sourceWithData = {
+      ...source,
+      bloodInventory: source.bloodInventory || {},
+      pricing: source.pricing || {
+        bloodPrice: source.pricePerUnit || 1200,
+        processingFee: 0,
+        screeningFee: 0,
+        serviceCharge: 0,
+      },
+      sourceType: source.sourceType || (source.type === "hospital" ? "hospital" : "organization"),
+    };
+    setSelectedSource(sourceWithData);
     setSelectedBloodType("");
     setUnits(1);
     setShowPurchaseForm(false);
@@ -221,6 +311,12 @@ const BuyBlood = () => {
 
     if (!selectedSource || !selectedBloodType || units < 1) {
       setError("Please select source, blood type, and units");
+      return;
+    }
+
+    // Check maximum limit (5 units per purchase)
+    if (units > 5) {
+      setError("Maximum 5 units allowed per purchase");
       return;
     }
 
@@ -256,18 +352,32 @@ const BuyBlood = () => {
         return;
       }
 
+      // Validate units (maximum 5)
+      if (units > 5) {
+        setError("Maximum 5 units allowed per purchase");
+        setLoading(false);
+        return;
+      }
+
+      // Validate transaction ID for bKash and Nagad
+      if ((paymentMethod === "bkash" || paymentMethod === "nagad") && !transactionId.trim()) {
+        setError(`Transaction ID is required for ${paymentMethod === "bkash" ? "bKash" : "Nagad"}`);
+        setLoading(false);
+        return;
+      }
+
       const totalCost = calculateTotal();
       
       console.log("Submitting purchase data:", {
-        sourceType: selectedSource.sourceType || (selectedSource.type === "hospital" ? "hospital" : "organization"),
+        sourceType: selectedSource.sourceType || "organization",
         sourceName: selectedSource.name,
-        sourceId: selectedSource.id,
+        sourceId: selectedSource._id || selectedSource.id,
         bloodType: selectedBloodType,
         units: Number(units),
       });
-      
+      //////////////////////////////////////////////////////
       const purchaseData = {
-        sourceType: selectedSource.type === "hospital" ? "hospital" : "organization",
+        sourceType: selectedSource.sourceType || "organization",
         sourceName: selectedSource.name,
         sourceId: selectedSource._id || selectedSource.id,
         bloodType: selectedBloodType,
@@ -287,6 +397,7 @@ const BuyBlood = () => {
         userNotes,
         deliveryAddress,
         paymentMethod,
+        transactionId: (paymentMethod === "bkash" || paymentMethod === "nagad") ? transactionId : undefined,
       };
 
       const response = await axios.post(
@@ -300,10 +411,11 @@ const BuyBlood = () => {
       const responseData = response.data.purchase || response.data;
       setPurchaseResponse(responseData);
       setShowSuccessModal(true);
+
       
       console.log("Modal state set:", { showSuccessModal: true, responseData });
       
-      // Reset form on success
+      // Reset form on success//////////////////////////////////////////////////////
       setShowPurchaseForm(false);
     } catch (err) {
       console.error("Purchase error:", err);
@@ -449,7 +561,7 @@ const BuyBlood = () => {
                     {searchResults.map((source, index) => (
                       <div
                         key={source.id}
-                        className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden ${
+                        className={`flex flex-col bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ${
                           index === 0 ? "ring-2 ring-green-500" : ""
                         }`}
                       >
@@ -458,7 +570,7 @@ const BuyBlood = () => {
                             🏆 BEST PRICE
                           </div>
                         )}
-                        <div className="p-6">
+                        <div className="p-6 flex flex-col flex-1">
                           <div className="flex items-start justify-between mb-4">
                             <div>
                               <span className="text-3xl mb-2 block">
@@ -534,7 +646,7 @@ const BuyBlood = () => {
 
                           <button
                             onClick={() => handleSelectFromSearch(source)}
-                            className="w-full bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors duration-200 font-semibold"
+                            className="w-full mt-auto bg-red-600 text-white py-3 rounded-lg hover:bg-red-700 transition-colors duration-200 font-semibold"
                           >
                             Purchase Now
                           </button>
@@ -553,29 +665,43 @@ const BuyBlood = () => {
             ) : (
               !selectedSource && (
                 <div className="space-y-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      All Available Sources ({sources.length})
-                    </h2>
-                    <div className="text-sm text-gray-600">
-                      {sources.filter(s => s.sourceType === "organization").length} Organizations • {sources.filter(s => s.sourceType === "hospital").length} Hospitals
-                    </div>
-                  </div>
+                  {(() => {
+                    const filteredSources = sources.filter((source) => {
+                      if (activeTab === "organizations") {
+                        return source.sourceType === "organization";
+                      } else if (activeTab === "hospitals") {
+                        return source.sourceType === "hospital";
+                      }
+                      return true; // "all" tab - show all sources
+                    });
+                    const orgCount = filteredSources.filter(s => s.sourceType === "organization").length;
+                    const hospCount = filteredSources.filter(s => s.sourceType === "hospital").length;
 
-                  {dataLoading ? (
-                    <div className="text-center py-12">
-                      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto"></div>
-                      <p className="text-gray-500 mt-4">Loading sources...</p>
-                    </div>
-                  ) : sources.length === 0 ? (
-                    <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
-                      <p className="text-yellow-800 font-medium">
-                        No sources available at the moment.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                      {sources.map((source) => (
+                    return (
+                      <>
+                        <div className="flex items-center justify-between mb-6">
+                          <h2 className="text-2xl font-bold text-gray-900">
+                            All Available Sources ({filteredSources.length})
+                          </h2>
+                          <div className="text-sm text-gray-600">
+                            {orgCount} Organizations • {hospCount} Hospitals
+                          </div>
+                        </div>
+
+                        {dataLoading ? (
+                          <div className="text-center py-12">
+                            <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-red-600 mx-auto"></div>
+                            <p className="text-gray-500 mt-4">Loading sources...</p>
+                          </div>
+                        ) : filteredSources.length === 0 ? (
+                          <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 rounded-lg">
+                            <p className="text-yellow-800 font-medium">
+                              No sources available at the moment.
+                            </p>
+                          </div>
+                        ) : (
+                          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {filteredSources.map((source) => (
                         <div
                           key={source.id}
                           className="bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-200"
@@ -637,12 +763,20 @@ const BuyBlood = () => {
                                       ৳{source.pricing.bloodPrice}
                                     </span>
                                   </div>
-                                  <div className="flex justify-between items-center">
+                                  <div className="flex justify-between items-center mb-2">
                                     <span className="text-sm text-gray-600">
                                       Total Fees:
                                     </span>
                                     <span className="text-gray-800 font-semibold">
                                       ৳{source.pricing.processingFee + source.pricing.screeningFee + source.pricing.serviceCharge}
+                                    </span>
+                                  </div>
+                                  <div className="flex justify-between items-center pt-2 border-t">
+                                    <span className="text-sm font-semibold text-gray-900">
+                                      Total Cost:
+                                    </span>
+                                    <span className="text-lg font-bold text-red-600">
+                                      ৳{source.pricing.bloodPrice + source.pricing.processingFee + source.pricing.screeningFee + source.pricing.serviceCharge}
                                     </span>
                                   </div>
                                 </div>
@@ -665,7 +799,10 @@ const BuyBlood = () => {
                         </div>
                       ))}
                     </div>
-                  )}
+                        )}
+                      </>
+                    );
+                  })()}
                 </div>
               )
             )}
@@ -710,15 +847,22 @@ const BuyBlood = () => {
                   {/* Units */}
                   <div>
                     <label className="block text-sm font-semibold text-gray-700 mb-2">
-                      Number of Units *
+                      Number of Units * (Max 5 units)
                     </label>
                     <input
                       type="number"
                       min="1"
+                      max="5"
                       value={units}
-                      onChange={(e) => setUnits(e.target.value)}
+                      onChange={(e) => {
+                        const value = Math.min(Math.max(parseInt(e.target.value) || 1, 1), 5);
+                        setUnits(value);
+                      }}
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     />
+                    {units > 5 && (
+                      <p className="text-red-600 text-sm mt-1">Maximum 5 units allowed per purchase</p>
+                    )}
                   </div>
                 </div>
 
@@ -986,17 +1130,69 @@ const BuyBlood = () => {
                   </label>
                   <select
                     value={paymentMethod}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={(e) => {
+                      setPaymentMethod(e.target.value);
+                      setTransactionId("");
+                    }}
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
                     required
                   >
                     <option value="cod">Cash on Delivery</option>
                     <option value="bkash">bKash</option>
-                    <option value="ssl">SSL E-commerce</option>
                     <option value="nagad">Nagad</option>
-                    <option value="rocket">Rocket</option>
                   </select>
                 </div>
+
+                {/* Transaction ID for bKash and Nagad */}
+                {(paymentMethod === "bkash" || paymentMethod === "nagad") && (
+                  <div className="col-span-full">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                      Transaction ID * ({paymentMethod === "bkash" ? "bKash" : "Nagad"})
+                    </label>
+                    
+                    {/* Payment Instructions */}
+                    <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded mb-4 w-full">
+                      <h4 className="font-bold text-blue-900 mb-3">
+                        {paymentMethod === "bkash" ? "bKash" : "Nagad"} Payment Instructions
+                      </h4>
+                      <ol className="text-sm text-blue-800 space-y-2 list-decimal list-inside">
+                        <li>Open the {paymentMethod === "bkash" ? "bKash" : "Nagad"} App on your mobile phone.</li>
+                        <li>Tap on Payment.</li>
+                        <li>
+                          Enter the {paymentMethod === "bkash" ? "bKash" : "Nagad"} number: 
+                          <span className="text-2xl font-bold text-red-600 inline-block">
+                            {paymentMethod === "bkash" ? "01858-201032" : "01858-201032"}
+                          </span>
+                        </li>
+                        <li>Enter the payment amount and complete the payment.</li>
+                        <li>After completing the payment, copy the Transaction ID.</li>
+                        <li>Paste the Transaction ID into the required field below.</li>
+                      </ol>
+                      <div className="mt-3 pt-3 border-t border-blue-300">
+                        <p className="text-sm text-red-700 font-semibold">
+                          ⚠️ Transaction ID is mandatory. Purchases without a valid Transaction ID will be automatically cancelled.
+                        </p>
+                      </div>
+                    </div>
+
+                    <input
+                      type="text"
+                      value={transactionId}
+                      onChange={(e) => setTransactionId(e.target.value)}
+                      placeholder={`Enter your ${paymentMethod === "bkash" ? "bKash" : "Nagad"} transaction ID`}
+                      className="w-full px-4 py-3 border-2 border-yellow-400 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 bg-yellow-50 font-semibold"
+                      required
+                    />
+                    {!transactionId && (
+                      <p className="text-xs text-red-600 mt-2 font-semibold">
+                       
+                      </p>
+                    )}
+                    <p className="text-xs text-gray-500 mt-1">
+                      You must provide a transaction ID to proceed with {paymentMethod === "bkash" ? "bKash" : "Nagad"} payment
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Additional Notes */}
@@ -1142,6 +1338,27 @@ const BuyBlood = () => {
                   </span>
                 </li>
               </ul>
+            </div>
+
+            {/* Customer Service Message */}
+            <div className="bg-amber-50 border-2 border-amber-300 p-6 rounded-lg mb-6">
+              <div className="flex items-start gap-3">
+                <svg
+                  className="w-6 h-6 text-amber-600 flex-shrink-0 mt-1"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path fillRule="evenodd" d="M18 5v8a2 2 0 01-2 2h-5l-5 4v-4H4a2 2 0 01-2-2V5a2 2 0 012-2h12a2 2 0 012 2zm-11-1a1 1 0 11-2 0 1 1 0 012 0zM8 9a1 1 0 100-2 1 1 0 000 2zm5 0a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+                </svg>
+                <div>
+                  <p className="text-lg font-semibold text-amber-900">
+                    Our Customer Service Will Contact You Very Soon
+                  </p>
+                  <p className="text-amber-800 text-sm mt-1">
+                    Our dedicated team will reach out to you within 24 hours to confirm your order and arrange delivery details.
+                  </p>
+                </div>
+              </div>
             </div>
 
             {/* Action Buttons */}

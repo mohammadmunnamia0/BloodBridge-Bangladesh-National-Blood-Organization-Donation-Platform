@@ -1,7 +1,8 @@
 export const organizationsData = {
   national: [
     {
-      _id: "org-demo-1",
+      _id: "000000000000000000000001",
+      id: "000000000000000000000001",
       name: "Bangladesh Red Crescent Society (BDRCS)",
       description:
         "Operates 10 blood centers nationwide, including in Dhaka, Chattogram, Sylhet, Rajshahi, Dinajpur, Jessore, Natore, Magura, and Gopalganj.",
@@ -32,7 +33,8 @@ export const organizationsData = {
       },
     },
     {
-      id: 2,
+      _id: "000000000000000000000002",
+      id: "000000000000000000000002",
       name: "SANDHANI",
       description:
         "A pioneer in voluntary blood donation, established in 1978. Operates units in 25 medical and dental colleges across Bangladesh.",
@@ -57,7 +59,8 @@ export const organizationsData = {
       },
     },
     {
-      id: 3,
+      _id: "000000000000000000000003",
+      id: "000000000000000000000003",
       name: "Medicine Club",
       description:
         "Founded in 1981 at Mymensingh Medical College. Active in 21 medical and dental colleges, focusing on blood donation and thalassemia awareness.",
@@ -82,7 +85,8 @@ export const organizationsData = {
       },
     },
     {
-      id: 4,
+      _id: "000000000000000000000004",
+      id: "000000000000000000000004",
       name: "Badhan",
       description:
         "Established in 1997 by students of Dhaka University. Promotes voluntary blood donation among university students.",
@@ -107,7 +111,8 @@ export const organizationsData = {
       },
     },
     {
-      id: 5,
+      _id: "000000000000000000000005",
+      id: "000000000000000000000005",
       name: "Quantum Foundation",
       description:
         "Operates a nationwide voluntary blood donation program. Maintains a large database of blood donors.",
@@ -132,88 +137,10 @@ export const organizationsData = {
       },
     },
   ],
-  hospital: [
-    {
-      id: 11,
-      name: "Evercare Hospital Dhaka",
-      description:
-        "Offers 24-hour blood transfusion services through their Transfusion Medicine Department.",
-      contact: "01713 041277",
-      website:
-        "https://www.evercarebd.com/dhaka/specialities/transfusion-medicine/",
-      category: "Hospital",
-      icon: "🏨",
-      bloodInventory: {
-        "A+": 28,
-        "A-": 7,
-        "B+": 32,
-        "B-": 5,
-        "AB+": 10,
-        "AB-": 3,
-        "O+": 35,
-        "O-": 6,
-      },
-      pricing: {
-        bloodPrice: 2000,
-        processingFee: 300,
-        screeningFee: 400,
-        serviceCharge: 150,
-      },
-    },
-    {
-      id: 12,
-      name: "Holy Family Red Crescent Medical College Hospital",
-      description:
-        "Provides blood donation and transfusion services. Located at 1 Eskaton Garden Road, Dhaka.",
-      website: "https://bdrcs.org/blood-program/",
-      category: "Hospital",
-      icon: "⛪",
-      bloodInventory: {
-        "A+": 25,
-        "A-": 6,
-        "B+": 28,
-        "B-": 4,
-        "AB+": 9,
-        "AB-": 2,
-        "O+": 32,
-        "O-": 5,
-      },
-      pricing: {
-        bloodPrice: 1600,
-        processingFee: 220,
-        screeningFee: 320,
-        serviceCharge: 80,
-      },
-    },
-    {
-      id: 13,
-      name: "Lab One Blood Bank",
-      description:
-        "A modern blood bank encouraging voluntary donations and maintaining a donor registry.",
-      website: "https://www.labone.org.bd/lab-one-blood-bank/",
-      category: "Hospital",
-      icon: "🔬",
-      bloodInventory: {
-        "A+": 30,
-        "A-": 8,
-        "B+": 34,
-        "B-": 6,
-        "AB+": 12,
-        "AB-": 4,
-        "O+": 38,
-        "O-": 7,
-      },
-      pricing: {
-        bloodPrice: 1800,
-        processingFee: 250,
-        screeningFee: 350,
-        serviceCharge: 120,
-      },
-    },
-  ],
   digital: [
     {
-      id: 15,
+      _id: "00000000000000000000000f",
+      id: "00000000000000000000000f",
       name: "Smart Blood Donor Management System (SBDMS)",
       description:
         "Streamlines blood donations, vital for thalassemia patients.",
@@ -238,7 +165,8 @@ export const organizationsData = {
       },
     },
     {
-      id: 16,
+      _id: "000000000000000000000010",
+      id: "000000000000000000000010",
       name: "Blood Donors Club, Bangladesh",
       description: "A community of voluntary blood donors.",
       website: "https://en.wikipedia.org/wiki/Blood_donation_in_Bangladesh",

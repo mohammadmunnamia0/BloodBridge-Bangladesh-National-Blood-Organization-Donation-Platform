@@ -131,7 +131,7 @@ const bloodPurchaseSchema = new mongoose.Schema(
     // Status tracking
     status: {
       type: String,
-      enum: ["pending", "approved", "rejected", "processing", "shipped", "delivered", "cancelled"],
+      enum: ["pending", "verified", "confirmed", "ready", "completed", "cancelled"],
       default: "pending",
     },
     
@@ -171,6 +171,11 @@ const bloodPurchaseSchema = new mongoose.Schema(
       enum: ["cash", "cod", "bkash", "nagad", "rocket", "card", "bank", "ssl"],
       default: "cash",
     },
+
+    // Transaction ID for digital payments (bKash, Nagad)
+    transactionId: {
+      type: String,
+    },
     
     // Notes and tracking
     adminNotes: {
@@ -179,6 +184,16 @@ const bloodPurchaseSchema = new mongoose.Schema(
     
     userNotes: {
       type: String,
+    },
+    
+    // Inventory tracking
+    inventoryReduced: {
+      type: Boolean,
+      default: false,
+    },
+    
+    inventoryReducedAt: {
+      type: Date,
     },
     
     // Status history

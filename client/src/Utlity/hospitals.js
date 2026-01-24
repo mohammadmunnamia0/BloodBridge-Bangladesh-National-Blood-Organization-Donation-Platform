@@ -1,6 +1,7 @@
 export const hospitals = [
   {
-    id: 1,
+    _id: "100000000000000000000001",
+    id: "100000000000000000000001",
     name: "Evercare Hospital Dhaka",
     emergencyHotline: "10678",
     ambulance: "+880 1714-090000",
@@ -28,7 +29,8 @@ export const hospitals = [
     },
   },
   {
-    id: 2,
+    _id: "100000000000000000000002",
+    id: "100000000000000000000002",
     name: "United Hospital Limited",
     emergencyContact: "01914-001234 / 01914-001232",
     address: "Plot 15, Road 71, Gulshan, Dhaka 1212",
@@ -55,7 +57,8 @@ export const hospitals = [
     },
   },
   {
-    id: 3,
+    _id: "100000000000000000000003",
+    id: "100000000000000000000003",
     name: "Square Hospital",
     emergencyHotline: "10616",
     landline: "+88 02 8144400",
@@ -85,7 +88,8 @@ export const hospitals = [
     },
   },
   {
-    id: 4,
+    _id: "100000000000000000000004",
+    id: "100000000000000000000004",
     name: "Bangladesh Specialized Hospital",
     emergencyContact: "01313-777771",
     address: "21 Shyamoli, Mirpur Road, Dhaka 1207",
@@ -112,33 +116,8 @@ export const hospitals = [
     },
   },
   {
-    id: 5,
-    name: "Dhaka Medical College Hospital (DMCH)",
-    address: "Secretariat Road, Dhaka 1000",
-    website: "http://www.dmc.gov.bd",
-    bloodInventory: {
-      "A+": 40,
-      "A-": 10,
-      "B+": 45,
-      "B-": 8,
-      "AB+": 16,
-      "AB-": 5,
-      "O+": 50,
-      "O-": 9,
-    },
-    pricing: {
-      bloodPrice: 1200,
-      processingFee: 150,
-      screeningFee: 250,
-      serviceCharge: 50,
-      additionalFees: {
-        crossMatching: 300,
-        storagePerDay: 40,
-      },
-    },
-  },
-  {
-    id: 6,
+    _id: "100000000000000000000006",
+    id: "100000000000000000000006",
     name: "Bangabandhu Sheikh Mujib Medical University (BSMMU)",
     address: "Shahbagh, Dhaka 1000",
     website: "https://www.bsmmu.edu.bd",
@@ -164,7 +143,8 @@ export const hospitals = [
     },
   },
   {
-    id: 7,
+    _id: "100000000000000000000007",
+    id: "100000000000000000000007",
     name: "Labaid Specialized Hospital",
     address: "26 Green Road, Dhaka 1205",
     website: "https://www.labaidgroup.com",
@@ -190,7 +170,8 @@ export const hospitals = [
     },
   },
   {
-    id: 8,
+    _id: "100000000000000000000008",
+    id: "100000000000000000000008",
     name: "BIRDEM General Hospital",
     emergencyContact: "02-41060479-80 (Ext: 2302, 2301)",
     address: "122 Kazi Nazrul Islam Avenue, Shahbagh, Dhaka 1000",
@@ -217,7 +198,8 @@ export const hospitals = [
     },
   },
   {
-    id: 9,
+    _id: "100000000000000000000009",
+    id: "100000000000000000000009",
     name: "BRB Hospital Limited",
     contact: "09610-010647",
     address: "77/A, East Rajabazar, Panthapath, Dhaka 1215",
@@ -244,7 +226,8 @@ export const hospitals = [
     },
   },
   {
-    id: 10,
+    _id: "10000000000000000000000a",
+    id: "10000000000000000000000a",
     name: "Anwar Khan Modern Medical College Hospital",
     contact: "02-58616074",
     address: "House 17, Road 8, Dhanmondi, Dhaka 1205",
@@ -271,7 +254,8 @@ export const hospitals = [
     },
   },
   {
-    id: 11,
+    _id: "10000000000000000000000b",
+    id: "10000000000000000000000b",
     name: "Central Hospital Limited",
     contact: "02-41060806",
     address: "House 2, Road 5, Green Road, Dhaka 1205",
@@ -298,7 +282,8 @@ export const hospitals = [
     },
   },
   {
-    id: 12,
+    _id: "10000000000000000000000c",
+    id: "10000000000000000000000c",
     name: "Dhaka Community Hospital Trust",
     contact: "+8801711-194576 / +8801749-765651",
     address: "190/1 Boro Moghbazar Wireless Gate, Dhaka 1217",
@@ -325,7 +310,8 @@ export const hospitals = [
     },
   },
   {
-    id: 13,
+    _id: "10000000000000000000000d",
+    id: "10000000000000000000000d",
     name: "Dhaka Central International Medical College & Hospital",
     hotline: "10651",
     address: "2/1 Ring Road, Shyamoli, Dhaka 1207",
@@ -352,7 +338,8 @@ export const hospitals = [
     },
   },
   {
-    id: 14,
+    _id: "10000000000000000000000e",
+    id: "10000000000000000000000e",
     name: "Ship International Hospital",
     hotline: "10654",
     emergencyContact: "+8801958-509222",
@@ -380,7 +367,8 @@ export const hospitals = [
     },
   },
   {
-    id: 15,
+    _id: "10000000000000000000000f",
+    id: "10000000000000000000000f",
     name: "National Institute of Cancer Research & Hospital (NICRH)",
     address: "Mohakhali, TB Gate Road, Dhaka",
     website: "https://nicrh.gov.bd",
@@ -406,7 +394,8 @@ export const hospitals = [
     },
   },
   {
-    id: 16,
+    _id: "100000000000000000000010",
+    id: "100000000000000000000010",
     name: "National Institute of Burn and Plastic Surgery",
     address: "63 AHM Kamruzzaman Sharani, Chankharpul, Dhaka",
     bloodInventory: {
@@ -431,7 +420,8 @@ export const hospitals = [
     },
   },
   {
-    id: 17,
+    _id: "100000000000000000000011",
+    id: "100000000000000000000011",
     name: "Holy Family Red Crescent Medical College Hospital",
     address: "1 Eskaton Garden Road, Ramna, Dhaka 1000",
     website: "https://www.hfrcmc.edu.bd",
@@ -457,7 +447,8 @@ export const hospitals = [
     },
   },
   {
-    id: 18,
+    _id: "100000000000000000000012",
+    id: "100000000000000000000012",
     name: "Enam Medical College & Hospital",
     address: "9/3 Parboti Nagar, Thana Road, Savar, Dhaka",
     website: "https://emcbd.info",
@@ -483,7 +474,8 @@ export const hospitals = [
     },
   },
   {
-    id: 19,
+    _id: "100000000000000000000013",
+    id: "100000000000000000000013",
     name: "Ad-Din Hospital",
     contact: "02-9353391-3",
     address: "Moghbazar, Dhaka",
@@ -509,7 +501,8 @@ export const hospitals = [
     },
   },
   {
-    id: 20,
+    _id: "100000000000000000000014",
+    id: "100000000000000000000014",
     name: "Shaheed Suhrawardy Medical College & Hospital",
     contact: "02-9122560-78",
     address: "Sher-e-Bangla Nagar, College Gate, Dhaka",

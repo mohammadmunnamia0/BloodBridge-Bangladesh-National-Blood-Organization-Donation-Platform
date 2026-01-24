@@ -7,6 +7,7 @@ import Hospital from "../models/Hospital.js";
 import BloodPurchase from "../models/BloodPurchase.js";
 import BloodRequest from "../models/BloodRequest.js";
 import User from "../models/User.js";
+import DonorApplication from "../models/DonorApplication.js";
 
 const router = express.Router();
 
@@ -274,14 +275,16 @@ router.get("/dashboard/stats", adminAuth, async (req, res) => {
         totalAdmins,
         totalOrders,
         pendingOrders,
-        totalUsers
+        totalUsers,
+        verifiedDonors
       ] = await Promise.all([
         Organization.countDocuments({ isActive: true }),
         Hospital.countDocuments({ isActive: true }),
         Admin.countDocuments({ isActive: true }),
         BloodPurchase.countDocuments(),
         BloodPurchase.countDocuments({ status: "pending" }),
-        User.countDocuments()
+        User.countDocuments(),
+        User.countDocuments({ donorVerifiedAt: { $ne: null } })
       ]);
       
       const orders = await BloodPurchase.find({ status: { $in: ["approved", "delivered"] } });
@@ -294,7 +297,8 @@ router.get("/dashboard/stats", adminAuth, async (req, res) => {
         totalOrders,
         pendingApprovals: pendingOrders,
         totalRevenue: `৳${totalRevenue.toLocaleString()}`,
-        totalUsers
+        totalUsers,
+        verifiedDonors
       });
     } else {
       // For org_admin and hospital_admin
@@ -1263,27 +1267,210 @@ router.patch("/purchases/:id/status", adminAuth, async (req, res) => {
     const { id } = req.params;
     const { status, adminNotes, pickupDetails } = req.body;
 
-    const updateData = {
-      status,
-      ...(adminNotes && { adminNotes }),
-      ...(pickupDetails && { pickupDetails }),
-      $push: {
-        statusHistory: {
-          status,
-          timestamp: new Date(),
-          updatedBy: req.userId,
-          notes: adminNotes,
-        },
-      },
-    };
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        message: "Invalid purchase ID",
+      });
+    }
 
-    const purchase = await BloodPurchase.findByIdAndUpdate(id, updateData, {
-      new: true,
-    }).populate("purchasedBy", "fullName email phone");
+    const validStatuses = [
+      "pending",
+      "verified",
+      "confirmed",
+      "ready",
+      "completed",
+      "cancelled",
+    ];
+
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        message: "Invalid status",
+      });
+    }
+
+    const purchase = await BloodPurchase.findById(id);
 
     if (!purchase) {
       return res.status(404).json({ message: "Purchase not found" });
     }
+
+    const previousStatus = purchase.status;
+
+    // Update status
+    purchase.status = status;
+    if (adminNotes) purchase.adminNotes = adminNotes;
+    if (pickupDetails) purchase.pickupDetails = pickupDetails;
+
+    // Add to status history
+    purchase.statusHistory.push({
+      status,
+      date: new Date(),
+      note: adminNotes || `Status updated to ${status}`,
+    });
+
+    // Helper function to reduce inventory ///////////////////////////////////////////////////
+    const reduceInventory = async (purchase) => {
+      try {
+        const { sourceType, sourceId, sourceName, bloodType, units } = purchase;
+        
+        console.log('🔍 Reducing inventory:', { sourceType, sourceId, sourceName, bloodType, units });
+        
+        if (sourceType === "organization") {
+          let result = null;
+          
+          // Try to find by ID first if it's a valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(sourceId)) {
+            result = await Organization.findByIdAndUpdate(
+              sourceId,
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: -units }
+              },
+              { new: true }
+            );
+          }
+          
+          // If ID is invalid or not found, try to find by name (for demo/test data)
+          if (!result && sourceName) {
+            console.log(`⚠️  Source ID "${sourceId}" not found or invalid. Attempting lookup by name: "${sourceName}"`);
+            result = await Organization.findOneAndUpdate(
+              { name: sourceName },
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: -units }
+              },
+              { new: true }
+            );
+          }
+          
+          if (result) {
+            console.log(`✅ Organization inventory reduced: ${bloodType} by ${units} units`);
+          } else {
+            console.warn(`⚠️  Organization "${sourceName || sourceId}" not found in database. Skipping inventory reduction.`);
+          }
+        } else if (sourceType === "hospital") {
+          let result = null;
+          
+          // Try to find by ID first if it's a valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(sourceId)) {
+            result = await Hospital.findByIdAndUpdate(
+              sourceId,
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: -units }
+              },
+              { new: true }
+            );
+          }
+          
+          // If ID is invalid or not found, try to find by name (for demo/test data)
+          if (!result && sourceName) {
+            console.log(`⚠️  Source ID "${sourceId}" not found or invalid. Attempting lookup by name: "${sourceName}"`);
+            result = await Hospital.findOneAndUpdate(
+              { name: sourceName },
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: -units }
+              },
+              { new: true }
+            );
+          }
+          
+          if (result) {
+            console.log(`✅ Hospital inventory reduced: ${bloodType} by ${units} units`);
+          } else {
+            console.warn(`⚠️  Hospital "${sourceName || sourceId}" not found in database. Skipping inventory reduction.`);
+          }
+        }
+      } catch (error) {
+        console.error("Error reducing inventory:", error);
+        throw error;
+      }
+    };
+
+    // If status is being changed to "completed", reduce the inventory
+    if (status === "completed" && previousStatus !== "completed") {
+      try {
+        console.log(`\n📋 REDUCING INVENTORY FOR PURCHASE ${id}`);
+        console.log(`Source Type: ${purchase.sourceType}`);
+        console.log(`Source ID: ${purchase.sourceId}`);
+        console.log(`Source Name: ${purchase.sourceName}`);
+        console.log(`Blood Type: ${purchase.bloodType}`);
+        console.log(`Units: ${purchase.units}`);
+        
+        await reduceInventory(purchase);
+        purchase.inventoryReduced = true;
+        purchase.inventoryReducedAt = new Date();
+        console.log(`✅ Inventory reduced for purchase ${id}\n`);
+      } catch (error) {
+        console.error("Error reducing inventory during status update:", error);
+        return res.status(500).json({
+          message: "Purchase status updated but failed to reduce inventory",
+          error: error.message,
+        });
+      }
+    }
+/////////////////////////////////////////////////////
+    // If status is being changed from "completed" to something else, add inventory back
+    if (previousStatus === "completed" && status !== "completed") {
+      try {
+        const { sourceType, sourceId, sourceName, bloodType, units } = purchase;
+        
+        if (sourceType === "organization") {
+          let result = null;
+          
+          // Try to find by ID first if it's a valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(sourceId)) {
+            result = await Organization.findByIdAndUpdate(
+              sourceId,
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: units }
+              },
+              { new: true }
+            );
+          }
+          
+          // If ID is invalid or not found, try to find by name
+          if (!result && sourceName) {
+            console.log(`⚠️  Attempting inventory restoration by name: "${sourceName}"`);
+            result = await Organization.findOneAndUpdate(
+              { name: sourceName },
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: units }
+              },
+              { new: true }
+            );
+          }
+        } else if (sourceType === "hospital") {
+          let result = null;
+          
+          // Try to find by ID first if it's a valid ObjectId
+          if (mongoose.Types.ObjectId.isValid(sourceId)) {
+            result = await Hospital.findByIdAndUpdate(
+              sourceId,
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: units }
+              },
+              { new: true }
+            );
+          }
+          
+          // If ID is invalid or not found, try to find by name
+          if (!result && sourceName) {
+            console.log(`⚠️  Attempting inventory restoration by name: "${sourceName}"`);
+            result = await Hospital.findOneAndUpdate(
+              { name: sourceName },
+              {
+                $inc: { [`bloodInventory.${bloodType}`]: units }
+              },
+              { new: true }
+            );
+          }
+        }
+        purchase.inventoryReduced = false;
+        console.log(`✅ Inventory restored for purchase ${id}`);
+      } catch (error) {
+        console.error("Error restoring inventory:", error);
+      }
+    }
+
+    await purchase.save();
 
     res.json({
       message: "Purchase status updated successfully",
@@ -1295,6 +1482,407 @@ router.patch("/purchases/:id/status", adminAuth, async (req, res) => {
       message: "Error updating purchase status",
       error: error.message,
     });
+  }
+});
+
+// ===== DONOR MANAGEMENT =====
+
+// Get all donor applications (pending)
+router.get("/donors/requests", adminAuth, async (req, res) => {
+  try {
+    console.log("🚀 /donors/requests endpoint hit");
+    console.log("Admin ID:", req.adminId);
+    console.log("Admin Role:", req.adminRole);
+    
+    const { page = 1, limit = 10, status = "pending" } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = {};
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    console.log("🔍 Donor Requests Query:", { query, page, limit, skip });
+
+    const applications = await DonorApplication.find(query)
+      .sort({ appliedAt: -1 })
+      .skip(skip)
+      .limit(parseInt(limit));
+
+    const total = await DonorApplication.countDocuments(query);
+
+    console.log(`📊 Found ${applications.length} applications (Total: ${total})`);
+
+    res.json({
+      applications,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get donor applications error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Approve donor application
+router.patch("/donors/requests/:id/approve", adminAuth, async (req, res) => {
+  try {
+    const application = await DonorApplication.findById(req.params.id);
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    if (application.status !== "pending") {
+      return res.status(400).json({ message: "Application is not pending" });
+    }
+
+    // Update application
+    application.status = "approved";
+    application.reviewedBy = req.adminId;
+    application.reviewedAt = new Date();
+    await application.save();
+
+    // Mark user as verified donor
+    const user = await User.findById(application.userId);
+    if (user) {
+      user.isDonor = true;
+      user.donorVerifiedAt = new Date();
+      await user.save();
+    }
+
+    res.json({
+      message: "Donor application approved successfully",
+      application,
+    });
+  } catch (error) {
+    console.error("Approve donor application error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Reject donor application
+router.patch("/donors/requests/:id/reject", adminAuth, async (req, res) => {
+  try {
+    const { rejectionReason } = req.body;
+    const application = await DonorApplication.findById(req.params.id);
+
+    if (!application) {
+      return res.status(404).json({ message: "Application not found" });
+    }
+
+    if (application.status !== "pending") {
+      return res.status(400).json({ message: "Application is not pending" });
+    }
+
+    // Update application
+    application.status = "rejected";
+    application.rejectionReason = rejectionReason || "Not specified";
+    application.reviewedBy = req.adminId;
+    application.reviewedAt = new Date();
+    await application.save();
+
+    res.json({
+      message: "Donor application rejected",
+      application,
+    });
+  } catch (error) {
+    console.error("Reject donor application error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all users (Manage Users - from Donor Management section)
+router.get("/donors/users", adminAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, bloodType, city } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = { isDonor: true };
+    if (bloodType && bloodType !== "all") {
+      query.bloodType = bloodType;
+    }
+    if (city && city !== "all") {
+      query.city = city;
+    }
+
+    const users = await User.find(query)
+      .select("-password")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ createdAt: -1 });
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      users,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get users error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get all verified donors
+router.get("/donors/verified", adminAuth, async (req, res) => {
+  try {
+    const { page = 1, limit = 10, bloodType, city } = req.query;
+    const skip = (parseInt(page) - 1) * parseInt(limit);
+
+    const query = { isDonor: true };
+    if (bloodType && bloodType !== "all") {
+      query.bloodType = bloodType;
+    }
+    if (city && city !== "all") {
+      query.city = city;
+    }
+
+    const donors = await User.find(query)
+      .select("-password")
+      .skip(skip)
+      .limit(parseInt(limit))
+      .sort({ donorVerifiedAt: -1 });
+
+    const total = await User.countDocuments(query);
+
+    res.json({
+      donors,
+      pagination: {
+        page: parseInt(page),
+        limit: parseInt(limit),
+        total,
+        pages: Math.ceil(total / parseInt(limit)),
+      },
+    });
+  } catch (error) {
+    console.error("Get verified donors error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Update donor information (admin)
+router.patch("/donors/:id", adminAuth, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Don't allow updating password through this endpoint
+    delete updateData.password;
+
+    const donor = await User.findByIdAndUpdate(id, updateData, {
+      new: true,
+      runValidators: true,
+    }).select("-password");
+
+    if (!donor) {
+      return res.status(404).json({ message: "Donor not found" });
+    }
+
+    res.json({
+      message: "Donor information updated successfully",
+      donor,
+    });
+  } catch (error) {
+    console.error("Update donor error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Block/Unblock donor
+router.patch("/donors/:id/block", adminAuth, superAdminOnly, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isBanned, banReason } = req.body;
+
+    const donor = await User.findByIdAndUpdate(
+      id,
+      {
+        isBanned,
+        banReason: isBanned ? banReason : null,
+        bannedAt: isBanned ? new Date() : null,
+        bannedBy: isBanned ? req.adminId : null,
+      },
+      { new: true }
+    ).select("-password");
+
+    if (!donor) {
+      return res.status(404).json({ message: "Donor not found" });
+    }
+
+    res.json({
+      message: `Donor ${isBanned ? "blocked" : "unblocked"} successfully`,
+      donor,
+    });
+  } catch (error) {
+    console.error("Block/Unblock donor error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get donor statistics
+router.get("/donors/stats", adminAuth, superAdminOnly, async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments();
+    const totalDonors = await User.countDocuments({ isDonor: true });
+    const pendingApplications = await DonorApplication.countDocuments({ status: "pending" });
+    const approvedApplications = totalDonors; // Match the verified donors count
+    const rejectedApplications = await DonorApplication.countDocuments({ status: "rejected" });
+
+    res.json({
+      totalUsers,
+      totalDonors,
+      pendingApplications,
+      approvedApplications,
+      rejectedApplications,
+    });
+  } catch (error) {
+    console.error("Get donor statistics error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// ============================================
+// INVENTORY MANAGEMENT ENDPOINTS
+// ============================================
+
+// Get inventory for organization or hospital
+router.get("/inventory/:entityType/:entityId", adminAuth, async (req, res) => {
+  try {
+    const { entityType, entityId } = req.params;
+
+    if (!mongoose.Types.ObjectId.isValid(entityId)) {
+      return res.status(400).json({ message: "Invalid entity ID" });
+    }
+
+    let entity;
+    if (entityType === "organization") {
+      entity = await Organization.findById(entityId);
+    } else if (entityType === "hospital") {
+      entity = await Hospital.findById(entityId);
+    } else {
+      return res.status(400).json({ message: "Invalid entity type" });
+    }
+
+    if (!entity) {
+      return res.status(404).json({ message: "Entity not found" });
+    }
+
+    res.json({
+      entityType,
+      entityId,
+      name: entity.name,
+      bloodInventory: entity.bloodInventory,
+    });
+  } catch (error) {
+    console.error("Error fetching inventory:", error);
+    res.status(500).json({ message: "Failed to fetch inventory", error: error.message });
+  }
+});
+
+// Update blood inventory manually (for admins)
+router.patch("/inventory/:entityType/:entityId/update", adminAuth, superAdminOnly, async (req, res) => {
+  try {
+    const { entityType, entityId } = req.params;
+    const { bloodType, quantity, action } = req.body; // action: "increase" or "decrease"
+
+    if (!mongoose.Types.ObjectId.isValid(entityId)) {
+      return res.status(400).json({ message: "Invalid entity ID" });
+    }
+
+    const validBloodTypes = ["A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"];
+    if (!validBloodTypes.includes(bloodType)) {
+      return res.status(400).json({ message: "Invalid blood type" });
+    }
+
+    if (!["increase", "decrease"].includes(action)) {
+      return res.status(400).json({ message: "Invalid action. Use 'increase' or 'decrease'" });
+    }
+
+    const quantityNum = Number(quantity);
+    if (isNaN(quantityNum) || quantityNum <= 0) {
+      return res.status(400).json({ message: "Quantity must be a positive number" });
+    }
+
+    let entity;
+    let updateValue;
+
+    if (action === "increase") {
+      updateValue = quantityNum;
+    } else {
+      updateValue = -quantityNum;
+    }
+
+    if (entityType === "organization") {
+      entity = await Organization.findByIdAndUpdate(
+        entityId,
+        { $inc: { [`bloodInventory.${bloodType}`]: updateValue } },
+        { new: true }
+      );
+    } else if (entityType === "hospital") {
+      entity = await Hospital.findByIdAndUpdate(
+        entityId,
+        { $inc: { [`bloodInventory.${bloodType}`]: updateValue } },
+        { new: true }
+      );
+    } else {
+      return res.status(400).json({ message: "Invalid entity type" });
+    }
+
+    if (!entity) {
+      return res.status(404).json({ message: "Entity not found" });
+    }
+
+    res.json({
+      message: `Blood inventory ${action}d successfully`,
+      entityType,
+      entityId,
+      name: entity.name,
+      bloodType,
+      quantity,
+      action,
+      updatedInventory: entity.bloodInventory,
+    });
+  } catch (error) {
+    console.error("Error updating inventory:", error);
+    res.status(500).json({ message: "Failed to update inventory", error: error.message });
+  }
+});
+
+// Get all inventories (for super admin dashboard)
+router.get("/inventory/summary/all", adminAuth, superAdminOnly, async (req, res) => {
+  try {
+    const organizations = await Organization.find({ isActive: true }).select("name bloodInventory");
+    const hospitals = await Hospital.find({ isActive: true }).select("name bloodInventory");
+
+    const inventorySummary = {
+      organizations: organizations.map(org => ({
+        type: "organization",
+        id: org._id,
+        name: org.name,
+        bloodInventory: org.bloodInventory,
+      })),
+      hospitals: hospitals.map(hosp => ({
+        type: "hospital",
+        id: hosp._id,
+        name: hosp.name,
+        bloodInventory: hosp.bloodInventory,
+      })),
+    };
+
+    res.json(inventorySummary);
+  } catch (error) {
+    console.error("Error fetching all inventories:", error);
+    res.status(500).json({ message: "Failed to fetch inventories", error: error.message });
   }
 });
 

@@ -17,8 +17,11 @@ const adminAuth = async (req, res, next) => {
       process.env.JWT_SECRET
     );
 
+    console.log("🔐 adminAuth middleware - Decoded token:", { adminId: decoded.adminId, role: decoded.role });
+
     // Check if it's an admin token (has adminId or role)
     if (!decoded.adminId && !decoded.role) {
+      console.log("❌ adminAuth - Token missing adminId/role");
       return res.status(403).json({
         message: "Access denied. Admin privileges required.",
       });

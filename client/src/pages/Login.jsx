@@ -23,10 +23,12 @@ const Login = () => {
 
       // Clear any existing admin token to prevent conflicts
       localStorage.removeItem("adminToken");
+      localStorage.removeItem("adminRefreshToken");
       localStorage.removeItem("adminUser");
       
       // Store authentication data
-      localStorage.setItem("token", response.data.token);
+      localStorage.setItem("token", response.data.accessToken);
+      localStorage.setItem("refreshToken", response.data.refreshToken);
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("user", JSON.stringify(response.data.user));
 

@@ -1,0 +1,269 @@
+@startuml BloodBridge_ClassDiagram
+!theme plain
+title BloodBridge Foundation - Class Diagram
+
+skinparam backgroundColor #FFFFFF
+skinparam classBackgroundColor #FFFFFF
+skinparam classBorderColor #333333
+skinparam packageBorderColor #333333
+skinparam packageBackgroundColor #FFFFFF
+skinparam linetype ortho
+skinparam defaultFontName Times New Roman
+skinparam classFont {
+    name Times New Roman
+    size 10
+}
+
+' Frontend Package
+package "Frontend Components" {
+    class DonorApplication {
+        + render()
+        + handleSubmit()
+        + validateForm()
+        + showSuccessMessage()
+    }
+
+    class DonorRequest {
+        + render()
+        + createBloodRequest()
+        + selectHospital()
+        + submitForm()
+    }
+
+    class DonorStatus {
+        + render()
+        + fetchApplicationStatus()
+        + displayStatus()
+        + handleRefresh()
+    }
+
+    class AdminDashboard {
+        + render()
+        + loadDashboard()
+        + displayAnalytics()
+        + refreshData()
+    }
+
+    class AdminPanel {
+        + render()
+        + manageApplications()
+        + approveRequests()
+        + viewReports()
+    }
+}
+
+' Backend Controllers & Services Package
+package "Backend - Controllers & Services" {
+    class AuthController {
+        + register(req, res)
+        + login(req, res)
+        + refreshToken(req, res)
+        + logout(req, res)
+    }
+
+    class DonorController {
+        + submitApplication(req, res)
+        + getApplicationStatus(req, res)
+        + getDonorsList(req, res)
+        + getDonorById(req, res)
+    }
+
+    class BloodRequestController {
+        + createRequest(req, res)
+        + getAllRequests(req, res)
+        + getRequestById(req, res)
+        + updateRequestStatus(req, res)
+        + deleteRequest(req, res)
+    }
+
+    class AdminController {
+        + login(req, res)
+        + getOrganizations(req, res)
+        + approveOrganization(req, res)
+        + rejectOrganization(req, res)
+        + getHospitals(req, res)
+    }
+
+    class AuthService {
+        - generateTokens()
+        + registerUser()
+        + loginUser()
+        + verifyToken()
+        + refreshAccessToken()
+    }
+
+    class DonorService {
+        + submitApplication()
+        + getApplicationStatus()
+        + getDonorsList()
+        + validateDonorEligibility()
+    }
+
+    class BloodRequestService {
+        + createRequest()
+        + getRequests()
+        + getRequestById()
+        + updateStatus()
+        + validateRequest()
+    }
+
+    class AdminService {
+        + verifyAdmin()
+        + approveOrganization()
+        + rejectOrganization()
+        + getDashboardStats()
+    }
+
+    AuthController --> AuthService
+    DonorController --> DonorService
+    BloodRequestController --> BloodRequestService
+    AdminController --> AdminService
+}
+
+' Backend Models Package
+package "Backend - Models" {
+    class User {
+        _id: ObjectId
+        fullName: string
+        email: string
+        phone: string
+        dateOfBirth: Date
+        gender: string
+        address: string
+        city: string
+        state: string
+        zipCode: string
+        bloodType: string
+        weight: number
+        medicalConditions: string
+        lastDonation: Date
+        password: string
+        role: string
+        isDonor: boolean
+        isBanned: boolean
+        refreshToken: string
+        --
+        + comparePassword()
+        + hashPassword()
+    }
+
+    class Admin {
+        _id: ObjectId
+        username: string
+        password: string
+        name: string
+        email: string
+        role: enum
+        permissions: enum
+        organizationId: ObjectId
+        hospitalId: ObjectId
+        isActive: boolean
+        lastLogin: Date
+        --
+        + comparePassword()
+        + hashPassword()
+    }
+
+    class DonorApplication {
+        _id: ObjectId
+        userId: ObjectId
+        fullName: string
+        email: string
+        phone: string
+        bloodType: string
+        age: number
+        weight: number
+        address: string
+        city: string
+        state: string
+        zipCode: string
+        gender: string
+        medicalConditions: string
+        lastBloodDonationDate: Date
+        status: enum
+        reviewedBy: ObjectId
+        rejectionReason: string
+        appliedAt: Date
+        updatedAt: Date
+        --
+        + getApplicationsByUserId()
+        + updateApplicationStatus()
+        + findPendingApplications()
+        + validateDonorEligibility()
+    }
+
+    class BloodRequest {
+        _id: ObjectId
+        patientName: string
+        bloodType: string
+        units: number
+        hospital: string
+        reason: string
+        urgency: enum
+        contactName: string
+        contactPhone: string
+        requiredDate: Date
+        requestedBy: ObjectId
+        status: enum
+        createdAt: Date
+        updatedAt: Date
+    }
+
+    class Organization {
+        _id: ObjectId
+        name: string
+        status: enum
+        rejectionReason: string
+        description: string
+        category: string
+        contact: string
+        phone: string
+        email: string
+        website: string
+        address: string
+        isActive: boolean
+        createdAt: Date
+    }
+
+    class Hospital {
+        _id: ObjectId
+        name: string
+        emergencyHotline: string
+        ambulance: string
+        phone: string
+        email: string
+        address: string
+        website: string
+        status: enum
+        category: string
+        description: string
+        bloodInventory: object
+        createdAt: Date
+    }
+}
+
+' Service to Model connections
+AuthService --> User
+DonorService --> DonorApplication
+DonorService --> User
+BloodRequestService --> BloodRequest
+BloodRequestService --> User
+AdminService --> Admin
+AdminService --> Organization
+AdminService --> Hospital
+
+' Model Relationships
+User "1" --> "*" DonorApplication
+User "1" --> "*" BloodRequest
+Admin "1" --> "*" Organization
+Admin "1" --> "*" Hospital
+Hospital "1" --> "*" BloodRequest
+
+' Frontend to Backend connections
+DonorApplication --> DonorController
+DonorRequest --> BloodRequestController
+DonorStatus --> DonorController
+AdminDashboard --> AdminController
+AdminPanel --> AdminController
+
+@enduml

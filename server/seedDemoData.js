@@ -305,20 +305,11 @@ const hospitalsData = [
     additionalFees: { crossMatching: 360, storagePerDay: 58 },
   },
   {
-    name: "Dhaka Medical College Hospital",
-    contact: "02-9672757",
-    address: "Secretariat Road, Dhaka 1000",
-    website: "https://dmch.gov.bd",
-    bloodInventory: { "A+": 40, "A-": 10, "B+": 45, "B-": 8, "AB+": 18, "AB-": 5, "O+": 50, "O-": 10 },
-    pricing: { bloodPrice: 1200, processingFee: 150, screeningFee: 250, serviceCharge: 50 },
-    additionalFees: { crossMatching: 300, storagePerDay: 40 },
-  },
-  {
-    name: "Bangabandhu Sheikh Mujib Medical University",
+    name: "Bangabandhu Sheikh Mujib Medical University (BSMMU)",
     contact: "02-9668202",
     address: "Shahbagh, Dhaka 1000",
     website: "https://bsmmu.edu.bd",
-    bloodInventory: { "A+": 38, "A-": 9, "B+": 42, "B-": 7, "AB+": 16, "AB-": 4, "O+": 48, "O-": 9 },
+    bloodInventory: { "A+": 38, "A-": 9, "B+": 42, "B-": 7, "AB+": 15, "AB-": 4, "O+": 48, "O-": 8 },
     pricing: { bloodPrice: 1300, processingFee: 160, screeningFee: 260, serviceCharge: 60 },
     additionalFees: { crossMatching: 320, storagePerDay: 45 },
   },
@@ -371,7 +362,6 @@ const seedDemoData = async () => {
     // Insert all organizations
     const allOrganizations = [
       ...organizationsData.national,
-      ...organizationsData.hospital,
       ...organizationsData.digital,
     ];
 

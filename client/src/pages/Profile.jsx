@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import axios from "../utils/axios";
 import { generateReceipt } from "../utils/generateReceipt";
+import DonorApplicationRequest from "../Components/DonorApplicationRequest";
+import DonorApplicationStatus from "../Components/DonorApplicationStatus";
 
 const Profile = () => {
   const [user, setUser] = useState(null);
@@ -13,8 +15,16 @@ const Profile = () => {
     fullName: "",
     email: "",
     phone: "",
-    bloodType: "",
+    dateOfBirth: "",
+    gender: "",
     address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    bloodType: "",
+    weight: "",
+    lastDonation: "",
+    medicalConditions: "",
   });
   const [activeTab, setActiveTab] = useState("info"); // info, purchases, shipping, requests
   const navigate = useNavigate();
@@ -38,8 +48,16 @@ const Profile = () => {
           fullName: userData.fullName || "",
           email: userData.email || "",
           phone: userData.phone || "",
-          bloodType: userData.bloodType || "",
+          dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : "",
+          gender: userData.gender || "",
           address: userData.address || "",
+          city: userData.city || "",
+          state: userData.state || "",
+          zipCode: userData.zipCode || "",
+          bloodType: userData.bloodType || "",
+          weight: userData.weight || "",
+          lastDonation: userData.lastDonation ? userData.lastDonation.split('T')[0] : "",
+          medicalConditions: userData.medicalConditions || "",
         });
       } catch (error) {
         console.error("Error parsing cached user:", error);
@@ -67,8 +85,16 @@ const Profile = () => {
         fullName: userData.fullName || "",
         email: userData.email || "",
         phone: userData.phone || "",
-        bloodType: userData.bloodType || "",
+        dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : "",
+        gender: userData.gender || "",
         address: userData.address || "",
+        city: userData.city || "",
+        state: userData.state || "",
+        zipCode: userData.zipCode || "",
+        bloodType: userData.bloodType || "",
+        weight: userData.weight || "",
+        lastDonation: userData.lastDonation ? userData.lastDonation.split('T')[0] : "",
+        medicalConditions: userData.medicalConditions || "",
       });
       
       // Update localStorage with fresh data
@@ -88,8 +114,16 @@ const Profile = () => {
             fullName: userData.fullName || "",
             email: userData.email || "",
             phone: userData.phone || "",
-            bloodType: userData.bloodType || "",
+            dateOfBirth: userData.dateOfBirth ? userData.dateOfBirth.split('T')[0] : "",
+            gender: userData.gender || "",
             address: userData.address || "",
+            city: userData.city || "",
+            state: userData.state || "",
+            zipCode: userData.zipCode || "",
+            bloodType: userData.bloodType || "",
+            weight: userData.weight || "",
+            lastDonation: userData.lastDonation ? userData.lastDonation.split('T')[0] : "",
+            medicalConditions: userData.medicalConditions || "",
           });
           console.log("Using cached user data");
         } catch (parseError) {
@@ -275,6 +309,26 @@ const Profile = () => {
               >
                 Shipping Status
               </button>
+              <button
+                onClick={() => setActiveTab("donor-request")}
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors duration-300 ${
+                  activeTab === "donor-request"
+                    ? "border-red-500 text-red-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Donor Application Request
+              </button>
+              <button
+                onClick={() => setActiveTab("donor-status")}
+                className={`py-4 px-6 text-sm font-medium border-b-2 transition-colors duration-300 ${
+                  activeTab === "donor-status"
+                    ? "border-red-500 text-red-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                Donor Application Status
+              </button>
             </nav>
           </div>
 
@@ -286,6 +340,7 @@ const Profile = () => {
                 {isEditing ? (
                   <form onSubmit={handleUpdateProfile} className="space-y-4">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {/* Row 1: Full Name and Email */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Full Name
@@ -312,6 +367,8 @@ const Profile = () => {
                           required
                         />
                       </div>
+
+                      {/* Row 2: Phone and Date of Birth */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Phone
@@ -324,6 +381,51 @@ const Profile = () => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         />
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Date of Birth
+                        </label>
+                        <input
+                          type="date"
+                          name="dateOfBirth"
+                          value={editForm.dateOfBirth}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Row 3: Gender and Weight */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Gender
+                        </label>
+                        <select
+                          name="gender"
+                          value={editForm.gender}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        >
+                          <option value="">Select Gender</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Weight (kg)
+                        </label>
+                        <input
+                          type="number"
+                          name="weight"
+                          value={editForm.weight}
+                          onChange={handleInputChange}
+                          placeholder="e.g., 70"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Row 4: Blood Type and Last Donation */}
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Blood Type
@@ -345,6 +447,20 @@ const Profile = () => {
                           <option value="O-">O-</option>
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Last Donation Date
+                        </label>
+                        <input
+                          type="date"
+                          name="lastDonation"
+                          value={editForm.lastDonation}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Row 5: Address */}
                       <div className="md:col-span-2">
                         <label className="block text-sm font-medium text-gray-700 mb-1">
                           Address
@@ -353,7 +469,60 @@ const Profile = () => {
                           name="address"
                           value={editForm.address}
                           onChange={handleInputChange}
+                          rows="2"
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Row 6: City, State, Zip */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          name="city"
+                          value={editForm.city}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          State
+                        </label>
+                        <input
+                          type="text"
+                          name="state"
+                          value={editForm.state}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Zip Code
+                        </label>
+                        <input
+                          type="text"
+                          name="zipCode"
+                          value={editForm.zipCode}
+                          onChange={handleInputChange}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                        />
+                      </div>
+
+                      {/* Row 7: Medical Conditions */}
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Medical Conditions (if any)
+                        </label>
+                        <textarea
+                          name="medicalConditions"
+                          value={editForm.medicalConditions}
+                          onChange={handleInputChange}
                           rows="3"
+                          placeholder="List any relevant medical conditions"
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
                         />
                       </div>
@@ -376,34 +545,107 @@ const Profile = () => {
                   </form>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Full Name */}
                     <div>
                       <p className="text-sm text-gray-500">Full Name</p>
                       <p className="text-lg font-medium text-gray-800">
                         {user?.fullName || "Not provided"}
                       </p>
                     </div>
+
+                    {/* Email */}
                     <div>
                       <p className="text-sm text-gray-500">Email</p>
                       <p className="text-lg font-medium text-gray-800">
                         {user?.email}
                       </p>
                     </div>
+
+                    {/* Phone */}
                     <div>
                       <p className="text-sm text-gray-500">Phone</p>
                       <p className="text-lg font-medium text-gray-800">
                         {user?.phone || "Not provided"}
                       </p>
                     </div>
+
+                    {/* Date of Birth */}
+                    <div>
+                      <p className="text-sm text-gray-500">Date of Birth</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.dateOfBirth ? formatDate(user.dateOfBirth) : "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* Gender */}
+                    <div>
+                      <p className="text-sm text-gray-500">Gender</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.gender || "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* Weight */}
+                    <div>
+                      <p className="text-sm text-gray-500">Weight</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.weight ? `${user.weight} kg` : "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* Blood Type */}
                     <div>
                       <p className="text-sm text-gray-500">Blood Type</p>
                       <p className="text-lg font-medium text-gray-800">
                         {user?.bloodType || "Not provided"}
                       </p>
                     </div>
+
+                    {/* Last Donation Date */}
+                    <div>
+                      <p className="text-sm text-gray-500">Last Donation Date</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.lastDonation ? formatDate(user.lastDonation) : "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* Address */}
                     <div className="md:col-span-2">
                       <p className="text-sm text-gray-500">Address</p>
                       <p className="text-lg font-medium text-gray-800">
                         {user?.address || "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* City */}
+                    <div>
+                      <p className="text-sm text-gray-500">City</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.city || "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* State */}
+                    <div>
+                      <p className="text-sm text-gray-500">State</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.state || "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* Zip Code */}
+                    <div>
+                      <p className="text-sm text-gray-500">Zip Code</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.zipCode || "Not provided"}
+                      </p>
+                    </div>
+
+                    {/* Medical Conditions */}
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-500">Medical Conditions</p>
+                      <p className="text-lg font-medium text-gray-800">
+                        {user?.medicalConditions || "Not provided"}
                       </p>
                     </div>
                   </div>
@@ -903,6 +1145,20 @@ const Profile = () => {
                     ))}
                   </div>
                 )}
+              </div>
+            )}
+
+            {/* Donor Application Request Tab */}
+            {activeTab === "donor-request" && (
+              <div>
+                <DonorApplicationRequest />
+              </div>
+            )}
+
+            {/* Donor Application Status Tab */}
+            {activeTab === "donor-status" && (
+              <div>
+                <DonorApplicationStatus />
               </div>
             )}
           </div>

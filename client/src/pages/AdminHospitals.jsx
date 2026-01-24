@@ -47,14 +47,26 @@ const AdminHospitals = () => {
         headers: { Authorization: `Bearer ${adminToken}` },
       });
       const dbHospitals = response.data.hospitals || [];
-      // Put database hospitals first, then demo data
-      const mergedHospitals = [...dbHospitals, ...hospitalsData];
+      // Combine demo data with database hospitals
+      const demoHospitalsWithFlag = hospitalsData.map(hospital => ({
+        ...hospital,
+        isDemo: true
+      }));
+      const dbHospitalsWithFlag = dbHospitals.map(hospital => ({
+        ...hospital,
+        isDemo: false
+      }));
+      const mergedHospitals = [...dbHospitalsWithFlag, ...demoHospitalsWithFlag];
       setHospitals(mergedHospitals);
       setLoading(false);
     } catch (error) {
       console.error("Error fetching hospitals:", error);
-      // Show demo data even if API fails
-      setHospitals(hospitalsData);
+      // Show demo data as fallback
+      const demoHospitalsWithFlag = hospitalsData.map(hospital => ({
+        ...hospital,
+        isDemo: true
+      }));
+      setHospitals(demoHospitalsWithFlag);
       setLoading(false);
     }
   };
@@ -219,10 +231,15 @@ const AdminHospitals = () => {
             </div>
           ) : (
             hospitals.map((hospital) => (
-              <div key={hospital._id} className="bg-white rounded-lg shadow-md p-6">
+              <div key={hospital._id} className={`bg-white rounded-lg shadow-md p-6 border-l-4 ${hospital.isDemo ? 'border-blue-400' : 'border-gray-300'}`}>
                 <div className="flex justify-between items-start mb-4">
                   <div className="flex-1">
-                    <h3 className="text-xl font-bold text-gray-800">{hospital.name}</h3>
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="text-xl font-bold text-gray-800">{hospital.name}</h3>
+                      {hospital.isDemo && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">DEMO</span>
+                      )}
+                    </div>
                     <div className="mt-2 space-y-1">
                       <p className="text-sm text-gray-600">📍 {hospital.address}</p>
                       <p className="text-sm text-gray-600">🚨 Emergency: {hospital.emergencyHotline}</p>
@@ -241,15 +258,17 @@ const AdminHospitals = () => {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleEdit(hospital)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                      disabled={hospital.isDemo}
+                      className={`px-4 py-2 rounded-lg transition ${hospital.isDemo ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
                     >
-                      Edit
+                      {hospital.isDemo ? 'Demo (Read Only)' : 'Edit'}
                     </button>
                     <button
                       onClick={() => handleDelete(hospital._id)}
-                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                      disabled={hospital.isDemo}
+                      className={`px-4 py-2 rounded-lg transition ${hospital.isDemo ? 'bg-gray-300 text-gray-500 cursor-not-allowed' : 'bg-red-600 text-white hover:bg-red-700'}`}
                     >
-                      Delete
+                      {hospital.isDemo ? 'Demo' : 'Delete'}
                     </button>
                   </div>
                 </div>

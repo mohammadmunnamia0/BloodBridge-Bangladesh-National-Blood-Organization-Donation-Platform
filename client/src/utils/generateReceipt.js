@@ -36,11 +36,14 @@ export const generateReceipt = (purchase) => {
     day: "numeric",
   }), 70, 65);
   
-  // Status
+  // Status - highlighted
   doc.setFont(undefined, "bold");
   doc.text("Status:", 20, 75);
-  doc.setFont(undefined, "normal");
+  const statusColor = purchase.status === "completed" ? [34, 197, 94] : [249, 115, 22];
+  doc.setTextColor(...statusColor);
+  doc.setFont(undefined, "bold");
   doc.text(purchase.status.toUpperCase(), 70, 75);
+  doc.setTextColor(0, 0, 0);
   
   // Expiry Date
   doc.setFont(undefined, "bold");
@@ -71,115 +74,187 @@ export const generateReceipt = (purchase) => {
   // Divider line
   doc.line(20, 127, 190, 127);
   
-  // Blood Details
+  // Blood Details - with emphasis on Blood Type
   doc.setFontSize(16);
   doc.setFont(undefined, "bold");
   doc.text("Blood Details", 20, 137);
   
   doc.setFontSize(12);
   doc.setFont(undefined, "normal");
-  doc.text(`Blood Type: ${purchase.bloodType}`, 20, 147);
-  doc.text(`Units: ${purchase.units}`, 20, 155);
-  doc.text(`Urgency: ${purchase.urgency.toUpperCase()}`, 20, 163);
   
-  // Divider line
-  doc.line(20, 170, 190, 170);
-  
-  // Patient Information
-  doc.setFontSize(16);
+  // Blood Type - highlighted with box
+  doc.setDrawColor(220, 38, 38);
+  doc.setFillColor(255, 240, 240);
+  doc.rect(20, 141, 170, 10, "F");
+  doc.setTextColor(220, 38, 38);
   doc.setFont(undefined, "bold");
-  doc.text("Patient Information", 20, 180);
-  
-  doc.setFontSize(12);
+  doc.text(`Blood Type: ${purchase.bloodType}`, 23, 148);
+  doc.setTextColor(0, 0, 0);
   doc.setFont(undefined, "normal");
-  doc.text(`Patient Name: ${purchase.patientName}`, 20, 190);
-  if (purchase.patientAge) {
-    doc.text(`Patient Age: ${purchase.patientAge}`, 20, 198);
-  }
-  if (purchase.patientCondition) {
-    doc.text(`Condition: ${purchase.patientCondition}`, 20, 206);
-  }
+  
+  doc.text(`Units: ${purchase.units}`, 20, 157);
+  doc.text(`Urgency: ${purchase.urgency.toUpperCase()}`, 20, 165);
   
   // Divider line
-  doc.line(20, 213, 190, 213);
+  doc.line(20, 172, 190, 172);
   
-  // Contact Information
-  doc.setFontSize(16);
+  // Patient Information and Contact Information - Two Columns
+  doc.setFontSize(14);
   doc.setFont(undefined, "bold");
-  doc.text("Contact Information", 20, 223);
-  
-  doc.setFontSize(12);
-  doc.setFont(undefined, "normal");
-  doc.text(`Contact Name: ${purchase.contactName}`, 20, 233);
-  doc.text(`Phone: ${purchase.contactPhone}`, 20, 241);
-  if (purchase.contactEmail) {
-    doc.text(`Email: ${purchase.contactEmail}`, 20, 249);
-  }
-  
-  // Divider line
-  doc.line(20, 256, 190, 256);
-  
-  // Pricing Breakdown
-  doc.setFontSize(16);
-  doc.setFont(undefined, "bold");
-  doc.text("Pricing Breakdown", 20, 256);
+  doc.text("Patient Information", 20, 182);
+  doc.text("Contact Information", 110, 182);
   
   doc.setFontSize(11);
   doc.setFont(undefined, "normal");
   
-  let yPosition = 266;
+  // Left Column - Patient Information
+  let leftY = 192;
+  doc.text(`Patient Name:`, 20, leftY);
+  doc.setFont(undefined, "normal");
+  doc.text(`${purchase.patientName}`, 20, leftY + 5);
+  leftY += 12;
   
-  // Blood Price
-  doc.text(`Blood Price (${purchase.units} units x ৳${purchase.pricing.bloodPrice}):`, 20, yPosition);
-  doc.text(`৳${purchase.pricing.bloodPrice * purchase.units}`, 160, yPosition, { align: "right" });
-  yPosition += 8;
-  
-  // Processing Fee
-  doc.text("Processing Fee:", 20, yPosition);
-  doc.text(`৳${purchase.pricing.processingFee}`, 160, yPosition, { align: "right" });
-  yPosition += 8;
-  
-  // Screening Fee
-  doc.text("Screening Fee:", 20, yPosition);
-  doc.text(`৳${purchase.pricing.screeningFee}`, 160, yPosition, { align: "right" });
-  yPosition += 8;
-  
-  // Service Charge
-  doc.text("Service Charge:", 20, yPosition);
-  doc.text(`৳${purchase.pricing.serviceCharge}`, 160, yPosition, { align: "right" });
-  yPosition += 8;
-  
-  // Additional Fees
-  if (purchase.pricing.additionalFees && Object.keys(purchase.pricing.additionalFees).length > 0) {
-    Object.entries(purchase.pricing.additionalFees).forEach(([key, value]) => {
-      const formattedKey = key
-        .replace(/([A-Z])/g, " $1")
-        .replace(/^./, (str) => str.toUpperCase());
-      doc.text(`${formattedKey}:`, 20, yPosition);
-      doc.text(`৳${value}`, 160, yPosition, { align: "right" });
-      yPosition += 8;
-    });
+  if (purchase.patientAge) {
+    doc.setFont(undefined, "bold");
+    doc.text(`Patient Age:`, 20, leftY);
+    doc.setFont(undefined, "normal");
+    doc.text(`${purchase.patientAge}`, 20, leftY + 5);
+    leftY += 12;
   }
   
-  // Total line
-  doc.setDrawColor(0, 0, 0);
-  doc.setLineWidth(0.5);
-  doc.line(20, yPosition, 190, yPosition);
-  yPosition += 10;
+  if (purchase.patientCondition) {
+    doc.setFont(undefined, "bold");
+    doc.text(`Condition:`, 20, leftY);
+    doc.setFont(undefined, "normal");
+    doc.text(`${purchase.patientCondition}`, 20, leftY + 5);
+    leftY += 12;
+  }
   
-  // Total Cost
+  // Right Column - Contact Information
+  let rightY = 192;
+  doc.setFont(undefined, "bold");
+  doc.text(`Contact Name:`, 110, rightY);
+  doc.setFont(undefined, "normal");
+  doc.text(`${purchase.contactName}`, 110, rightY + 5);
+  rightY += 12;
+  
+  doc.setFont(undefined, "bold");
+  doc.text(`Phone:`, 110, rightY);
+  doc.setFont(undefined, "normal");
+  doc.text(`${purchase.contactPhone}`, 110, rightY + 5);
+  rightY += 12;
+  
+  if (purchase.contactEmail) {
+    doc.setFont(undefined, "bold");
+    doc.text(`Email:`, 110, rightY);
+    doc.setFont(undefined, "normal");
+    doc.text(`${purchase.contactEmail}`, 110, rightY + 5);
+    rightY += 12;
+  }
+  
+  // Use the maximum Y position from both columns
+  const maxColumnY = Math.max(leftY, rightY);
+  
+  // Divider line
+  doc.line(20, maxColumnY + 3, 190, maxColumnY + 3);
+  
+  // Pricing Breakdown - clean UI (NO border)
+  doc.setFontSize(16);
+  doc.setFont(undefined, "bold");
+  doc.setFillColor(255, 250, 250);
+  doc.rect(15, maxColumnY + 6, 180, 8, "F"); // subtle header background
+  doc.text("Pricing Breakdown", 20, maxColumnY + 12);
+
+  doc.setFontSize(11);
+  doc.setFont(undefined, "normal");
+
+  let yPosition = maxColumnY + 20;
+
+  // Blood Price
+  doc.text(
+    `Blood Price (${purchase.units} units × ৳${purchase.pricing.bloodPrice})`,
+    25,
+    yPosition
+  );
+  doc.text(
+    `৳${(purchase.pricing.bloodPrice * purchase.units).toLocaleString()}`,
+    170,
+    yPosition,
+    { align: "right" }
+  );
+  yPosition += 7;
+
+  // Processing Fee
+  doc.text("Processing Fee", 25, yPosition);
+  doc.text(`৳${purchase.pricing.processingFee.toLocaleString()}`, 170, yPosition, {
+    align: "right",
+  });
+  yPosition += 7;
+
+  // Screening Fee
+  doc.text("Screening Fee", 25, yPosition);
+  doc.text(`৳${purchase.pricing.screeningFee.toLocaleString()}`, 170, yPosition, {
+    align: "right",
+  });
+  yPosition += 7;
+
+  // Service Charge
+  doc.text("Service Charge", 25, yPosition);
+  doc.text(`৳${purchase.pricing.serviceCharge.toLocaleString()}`, 170, yPosition, {
+    align: "right",
+  });
+  yPosition += 7;
+
+  // Additional Fees (if any)
+  if (
+    purchase.pricing.additionalFees &&
+    Object.keys(purchase.pricing.additionalFees).length > 0
+  ) {
+    Object.entries(purchase.pricing.additionalFees).forEach(([key, value]) => {
+      const label = key
+        .replace(/([A-Z])/g, " $1")
+        .replace(/^./, (c) => c.toUpperCase());
+
+      doc.text(label, 25, yPosition);
+      doc.text(`৳${value.toLocaleString()}`, 170, yPosition, { align: "right" });
+      yPosition += 7;
+    });
+  }
+
+  // Divider before total
+  doc.setDrawColor(200);
+  doc.setLineWidth(0.5);
+  doc.line(25, yPosition + 2, 190, yPosition + 2);
+  yPosition += 8;
+
+  // Total Cost (highlighted)
   doc.setFontSize(14);
   doc.setFont(undefined, "bold");
-  doc.text("Total Cost:", 20, yPosition);
-  doc.setTextColor(22, 163, 74); // Green color
-  doc.text(`৳${purchase.pricing.totalCost.toLocaleString()}`, 160, yPosition, { align: "right" });
-  
+  doc.setFillColor(34, 197, 94); // green
+  doc.setTextColor(255, 255, 255);
+  doc.rect(17, yPosition - 6, 176, 9, "F");
+
+  doc.text("Total Cost", 25, yPosition);
+  doc.text(`৳${purchase.pricing.totalCost.toLocaleString()}`, 170, yPosition, {
+    align: "right",
+  });
+
+  // Reset text color
+  doc.setTextColor(0, 0, 0);
+
   // Footer
-  doc.setTextColor(128, 128, 128);
-  doc.setFontSize(10);
-  doc.setFont(undefined, "normal");
-  doc.text("Thank you for using BloodBridge!", 105, 285, { align: "center" });
-  doc.text("For support, contact: support@bloodbridge.bd", 105, 292, { align: "center" });
+  const footerStartY = yPosition + 15;
+  doc.setFontSize(9);
+  doc.setTextColor(120);
+  doc.text("Thank you for using BloodBridge!", 105, footerStartY, {
+    align: "center",
+  });
+  doc.text(
+    "For support, contact: support@bloodbridge.bd",
+    105,
+    footerStartY + 5,
+    { align: "center" }
+  );
   
   // Save the PDF
   const fileName = `BloodBridge_Receipt_${purchase.trackingNumber || purchase._id}.pdf`;

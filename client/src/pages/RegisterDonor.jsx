@@ -98,7 +98,7 @@ const RegisterDonor = () => {
           {/* Header */}
           <div className="px-8 pt-8 pb-4">
             <h2 className="text-3xl font-bold text-gray-900 text-center">
-              Register as a Blood Donor
+              Register as a Blood Bridge User
             </h2>
             <p className="mt-2 text-sm text-gray-600 text-center">
               Join our lifesaving mission by becoming a blood donor

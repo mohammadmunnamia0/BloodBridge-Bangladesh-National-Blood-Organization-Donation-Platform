@@ -20,6 +20,13 @@ const AdminInventory = () => {
       return;
     }
     loadInventory();
+    
+    // Auto-refresh inventory every 10 seconds for real-time updates
+    const refreshInterval = setInterval(() => {
+      loadInventory();
+    }, 10000);
+    
+    return () => clearInterval(refreshInterval);
   }, [navigate, filter]);
 
   const loadInventory = async () => {
@@ -30,22 +37,28 @@ const AdminInventory = () => {
 
       if (filter === "all" || filter === "organization") {
         // Add demo organizations
-        const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
+        const allDemoOrgs = [...organizationsData.national, ...organizationsData.digital];
         const demoOrgs = allDemoOrgs.map((org) => ({
           ...org,
           sourceType: "organization",
+          isDemo: true,
         }));
         allSources = [...allSources, ...demoOrgs];
         
         // Add database organizations
-        const orgResponse = await axios.get("/admin/organizations", {
-          headers: { Authorization: `Bearer ${adminToken}` },
-        });
-        const orgs = (orgResponse.data.organizations || []).map((org) => ({
-          ...org,
-          sourceType: "organization",
-        }));
-        allSources = [...allSources, ...orgs];
+        try {
+          const orgResponse = await axios.get("/admin/organizations", {
+            headers: { Authorization: `Bearer ${adminToken}` },
+          });
+          const orgs = (orgResponse.data.organizations || []).map((org) => ({
+            ...org,
+            sourceType: "organization",
+            isDemo: false,
+          }));
+          allSources = [...allSources, ...orgs];
+        } catch (err) {
+          console.warn("Could not fetch database organizations:", err);
+        }
       }
 
       if (filter === "all" || filter === "hospital") {
@@ -53,36 +66,30 @@ const AdminInventory = () => {
         const demoHosps = hospitalsData.map((h) => ({
           ...h,
           sourceType: "hospital",
+          isDemo: true,
         }));
         allSources = [...allSources, ...demoHosps];
         
         // Add database hospitals
-        const hospResponse = await axios.get("/admin/hospitals", {
-          headers: { Authorization: `Bearer ${adminToken}` },
-        });
-        const hosps = (hospResponse.data.hospitals || []).map((h) => ({
-          ...h,
-          sourceType: "hospital",
-        }));
-        allSources = [...allSources, ...hosps];
+        try {
+          const hospResponse = await axios.get("/admin/hospitals", {
+            headers: { Authorization: `Bearer ${adminToken}` },
+          });
+          const hosps = (hospResponse.data.hospitals || []).map((h) => ({
+            ...h,
+            sourceType: "hospital",
+            isDemo: false,
+          }));
+          allSources = [...allSources, ...hosps];
+        } catch (err) {
+          console.warn("Could not fetch database hospitals:", err);
+        }
       }
 
       setInventory(allSources);
       setLoading(false);
     } catch (error) {
       console.error("Error loading inventory:", error);
-      // Show demo data even if API fails
-      let demoSources = [];
-      if (filter === "all" || filter === "organization") {
-        const allDemoOrgs = [...organizationsData.national, ...organizationsData.hospital, ...organizationsData.digital];
-        const demoOrgs = allDemoOrgs.map((org) => ({ ...org, sourceType: "organization" }));
-        demoSources = [...demoSources, ...demoOrgs];
-      }
-      if (filter === "all" || filter === "hospital") {
-        const demoHosps = hospitalsData.map((h) => ({ ...h, sourceType: "hospital" }));
-        demoSources = [...demoSources, ...demoHosps];
-      }
-      setInventory(demoSources);
       setLoading(false);
     }
   };
@@ -207,18 +214,30 @@ const AdminInventory = () => {
               const lowStockCount = getLowStockCount(item.bloodInventory);
 
             return (
-              <div key={index} className="bg-white rounded-lg shadow-md p-6">
+              <div key={index} className="bg-white rounded-lg shadow-md p-6 border-l-4 border-gray-300">
                 <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-xl font-bold text-gray-800">{item.name}</h3>
+                      {item.isDemo && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-semibold rounded">DEMO</span>
+                      )}
+                    </div>
                     <p className="text-sm text-gray-600 capitalize">{item.sourceType}</p>
                   </div>
-                  <button
-                    onClick={() => handleEditInventory(item)}
-                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
-                  >
-                    Update Stock
-                  </button>
+                  {!item.isDemo && (
+                    <button
+                      onClick={() => handleEditInventory(item)}
+                      className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition text-sm"
+                    >
+                      Update Stock
+                    </button>
+                  )}
+                  {item.isDemo && (
+                    <span className="px-4 py-2 bg-gray-200 text-gray-600 rounded-lg text-sm cursor-not-allowed">
+                      Read Only
+                    </span>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-4">

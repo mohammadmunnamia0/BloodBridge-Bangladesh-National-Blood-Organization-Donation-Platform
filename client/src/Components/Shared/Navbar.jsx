@@ -140,19 +140,25 @@ const Navbar = () => {
                 location.pathname === "/buy-blood" ? "w-full" : "w-0 group-hover:w-full"
               }`}></span>
             </Link>
-            <Link
-              to="/price-comparison"
+            <button
+              onClick={() => user && user.isDonor ? window.location.href = "/donor-list" : null}
+              disabled={!user || !user.isDonor}
               className={`text-sm transition-colors duration-300 relative group ${
-                location.pathname === "/price-comparison" 
-                  ? "text-red-500 font-semibold" 
-                  : "text-gray-600 hover:text-red-500"
+                !user || !user.isDonor
+                  ? "text-gray-400 cursor-not-allowed"
+                  : location.pathname === "/donor-list" 
+                    ? "text-red-500 font-semibold" 
+                    : "text-gray-600 hover:text-red-500"
               }`}
+              title={!user ? "Login to access Donor Panel" : !user.isDonor ? "Register as Donor first" : ""}
             >
-              Price Compare
-              <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
-                location.pathname === "/price-comparison" ? "w-full" : "w-0 group-hover:w-full"
-              }`}></span>
-            </Link>
+              Donor Panel
+              {user && user.isDonor && (
+                <span className={`absolute bottom-0 left-0 h-0.5 bg-red-500 transition-all duration-300 ${
+                  location.pathname === "/donor-list" ? "w-full" : "w-0 group-hover:w-full"
+                }`}></span>
+              )}
+            </button>
             {user && (
               <Link
                 to="/profile"
@@ -175,7 +181,9 @@ const Navbar = () => {
             {user ? (
               <div className="flex items-center space-x-4">
                 <div className="flex items-center space-x-2">
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center shadow-lg hover:shadow-red-500/30 transform hover:scale-105 transition-all duration-300">
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center shadow-lg hover:shadow-red-500/30 transform hover:scale-105 transition-all duration-300 bg-gradient-to-r from-red-500 to-red-600 ${
+                    user.donorVerifiedAt ? "ring-2 ring-green-500" : ""
+                  }`}>
                     <span className="text-white text-sm font-medium">
                       {user.fullName?.charAt(0) || user.email?.charAt(0)}
                     </span>
@@ -355,7 +363,7 @@ const Navbar = () => {
             >
               Buy Blood
             </Link>
-            <Link
+            {/* <Link
               to="/price-comparison"
               className={`block px-3 py-2 rounded-md text-base font-medium transition-colors ${
                 location.pathname === "/price-comparison" 
@@ -365,7 +373,26 @@ const Navbar = () => {
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Price Comparison
-            </Link>
+            </Link> */}
+            <button
+              onClick={() => {
+                if (user && user.isDonor) {
+                  window.location.href = "/donor-list";
+                  setIsMobileMenuOpen(false);
+                }
+              }}
+              disabled={!user || !user.isDonor}
+              className={`block w-full text-left px-3 py-2 rounded-md text-base font-medium transition-colors ${
+                !user || !user.isDonor
+                  ? "text-gray-400 cursor-not-allowed bg-gray-50"
+                  : location.pathname === "/donor-list" 
+                    ? "text-red-500 bg-red-50 font-semibold border-l-4 border-red-500" 
+                    : "text-gray-600 hover:text-red-500 hover:bg-gray-50"
+              }`}
+              title={!user ? "Login to access Donor Panel" : !user.isDonor ? "Register as Donor first" : ""}
+            >
+              Donor Panel
+            </button>
             {user && (
               <Link
                 to="/profile"
@@ -383,7 +410,9 @@ const Navbar = () => {
               <>
                 <div className="px-3 py-2">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center">
+                    <div className={`w-8 h-8 rounded-full bg-gradient-to-r from-red-500 to-red-600 flex items-center justify-center ${
+                      user.donorVerifiedAt ? "ring-2 ring-green-500" : ""
+                    }`}>
                       <span className="text-white text-sm font-medium">
                         {user.fullName?.charAt(0) || user.email?.charAt(0)}
                       </span>

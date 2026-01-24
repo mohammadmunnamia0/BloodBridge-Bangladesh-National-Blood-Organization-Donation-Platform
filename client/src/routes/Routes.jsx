@@ -29,6 +29,9 @@ import PurchaseBlood from "../pages/PurchaseBlood";
 import PurchaseSuccess from "../pages/PurchaseSuccess";
 import RegisterOrganization from "../pages/RegisterOrganization";
 import RegisterHospital from "../pages/RegisterHospital";
+import DonorList from "../pages/DonorList";
+import AdminDonorManagement from "../pages/AdminDonorManagement";
+import DonorPanel from "../pages/DonorPanel";
 
 const router = createBrowserRouter([
   {
@@ -87,6 +90,10 @@ const router = createBrowserRouter([
         path: "/profile",
         element: <Profile />,
       },
+      {
+        path: "/donor-list",
+        element: <DonorList />,
+      },
     ],
   },
   {
@@ -136,6 +143,14 @@ const router = createBrowserRouter([
       {
         path: "/admin/donors",
         element: <AdminDonors />,
+      },
+      {
+        path: "/admin/donor-management",
+        element: <AdminDonorManagement />,
+      },
+      {
+        path: "/admin/donor-panel",
+        element: <DonorPanel />,
       },
       {
         path: "/admin/blood-requests",
